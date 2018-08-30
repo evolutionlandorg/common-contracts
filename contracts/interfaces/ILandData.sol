@@ -1,6 +1,6 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
-interface ILandData {
+contract ILandData {
 
     function batchModifyResources(uint _tokenId, uint _goldRate, uint _woodRate, uint _waterRate, uint _fireRate, uint _soilRate) public;
 

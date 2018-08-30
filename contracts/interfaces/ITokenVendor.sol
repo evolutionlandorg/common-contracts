@@ -1,10 +1,9 @@
 pragma solidity ^0.4.23;
 
+contract ITokenVendor {
 
-interface ITokenVendor {
 
-
-    function buyTokenRate() public returns (uint256);
+    function buyTokenRate() public view returns (uint256);
 
     function sellTokenRate() public returns (uint256);
 
