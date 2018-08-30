@@ -2,6 +2,8 @@ pragma solidity ^0.4.23;
 
 interface ILandData {
 
+    function batchModifyResources(uint _tokenId, uint _goldRate, uint _woodRate, uint _waterRate, uint _fireRate, uint _soilRate) public;
+
     function modifyAttributes(uint _tokenId, uint _right, uint _left, uint _newValue) public;
 
     function isReserved(uint256 _tokenId) public view returns (bool);
