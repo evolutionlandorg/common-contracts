@@ -1,6 +1,8 @@
 pragma solidity ^0.4.24;
 
 contract ISettingsRegistry {
+    enum SettingsValueTypes { NONE, UINT, STRING, ADDRESS, BYTES, BOOL, INT }
+
     function uintOf(bytes32 _propertyName) public view returns (uint256);
 
     function stringOf(bytes32 _propertyName) public view returns (string);
@@ -12,4 +14,6 @@ contract ISettingsRegistry {
     function boolOf(bytes32 _propertyName) public view returns (bool);
 
     function intOf(bytes32 _propertyName) public view returns (int);
+
+    function getValueTypeOf(bytes32 _propertyName) public view returns (uint /* SettingsValueTypes */ );
 }
