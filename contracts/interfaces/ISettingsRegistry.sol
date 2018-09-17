@@ -15,5 +15,17 @@ contract ISettingsRegistry {
 
     function intOf(bytes32 _propertyName) public view returns (int);
 
+    function setUintProperty(bytes32 _propertyName, uint _value) public;
+
+    function setStringProperty(bytes32 _propertyName, string _value) public;
+
+    function setAddressProperty(bytes32 _propertyName, address _value) public;
+
+    function setBytesProperty(bytes32 _propertyName, bytes _value) public;
+
+    function setBoolProperty(bytes32 _propertyName, bool _value) public;
+
+    function setIntProperty(bytes32 _propertyName, int _value) public;
+
     function getValueTypeOf(bytes32 _propertyName) public view returns (uint /* SettingsValueTypes */ );
 }
