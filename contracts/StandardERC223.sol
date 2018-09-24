@@ -1,14 +1,14 @@
 pragma solidity ^0.4.24;
 
-import 'openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol';
 import './interfaces/ERC223ReceivingContract.sol';
 import './interfaces/TokenController.sol';
 import './interfaces/ApproveAndCallFallBack.sol';
 import './interfaces/ERC223.sol';
+import './StandardERC20Base.sol';
 import './DSAuth.sol';
 
 // This is a contract for demo and test.
-contract StandardERC223 is StandardToken, DSAuth, ERC223 {
+contract StandardERC223 is StandardERC20Base, DSAuth, ERC223 {
     event Burn(address indexed burner, uint256 value);
     event Mint(address indexed to, uint256 amount);
 
@@ -33,7 +33,7 @@ contract StandardERC223 is StandardToken, DSAuth, ERC223 {
 //////////
     /// @notice Changes the controller of the contract
     /// @param _newController The new controller of the contract
-    function changeController(address _newController) auth {
+    function changeController(address _newController) public auth {
         controller = _newController;
     }
 
@@ -89,19 +89,19 @@ contract StandardERC223 is StandardToken, DSAuth, ERC223 {
     }
 
     function mint(address _to, uint _amount) public auth {
-        totalSupply_ = totalSupply_.add(_amount);
-        balances[_to] = balances[_to].add(_amount);
+        _supply = _supply.add(_amount);
+        _balances[_to] = _balances[_to].add(_amount);
         emit Mint(_to, _amount);
         emit Transfer(address(0), _to, _amount);
     }
 
     function burn(address _who, uint _value) public auth {
-        require(_value <= balances[_who]);
+        require(_value <= _balances[_who]);
         // no need to require value <= totalSupply, since that would imply the
         // sender's balance is greater than the totalSupply, which *should* be an assertion failure
 
-        balances[_who] = balances[_who].sub(_value);
-        totalSupply_ = totalSupply_.sub(_value);
+        _balances[_who] = _balances[_who].sub(_value);
+        _supply = _supply.sub(_value);
         emit Burn(_who, _value);
         emit Transfer(_who, address(0), _value);
     }
@@ -135,7 +135,7 @@ contract StandardERC223 is StandardToken, DSAuth, ERC223 {
     /// @param _spender The address of the account able to transfer the tokens
     /// @param _amount The amount of tokens to be approved for transfer
     /// @return True if the approval was successful
-    function approve(address _spender, uint256 _amount) returns (bool success) {
+    function approve(address _spender, uint256 _amount) public returns (bool success) {
         // Alerts the token controller of the approve function call
         if (isContract(controller)) {
             if (!TokenController(controller).onApprove(msg.sender, _spender, _amount))
@@ -153,7 +153,7 @@ contract StandardERC223 is StandardToken, DSAuth, ERC223 {
     /// @param _amount The amount of tokens to be approved for transfer
     /// @return True if the function call was successful
     function approveAndCall(address _spender, uint256 _amount, bytes _extraData
-    ) returns (bool success) {
+    ) public returns (bool success) {
         if (!approve(_spender, _amount)) revert();
 
         ApproveAndCallFallBack(_spender).receiveApproval(
@@ -181,7 +181,7 @@ contract StandardERC223 is StandardToken, DSAuth, ERC223 {
     /// @notice The fallback function: If the contract's controller has not been
     ///  set to 0, then the `proxyPayment` method is called which relays the
     ///  ether and creates tokens as described in the token controller contract
-    function ()  payable {
+    function ()  public payable {
         if (isContract(controller)) {
             if (! TokenController(controller).proxyPayment.value(msg.value)(msg.sender, msg.sig, msg.data))
                 revert();
@@ -198,7 +198,7 @@ contract StandardERC223 is StandardToken, DSAuth, ERC223 {
     ///  sent tokens to this contract.
     /// @param _token The address of the token contract that you want to recover
     ///  set to 0 in case you want to extract ether.
-    function claimTokens(address _token) auth {
+    function claimTokens(address _token) public auth {
         if (_token == 0x0) {
             address(msg.sender).transfer(address(this).balance);
             return;
