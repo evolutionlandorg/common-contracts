@@ -28,4 +28,6 @@ contract ISettingsRegistry {
     function setIntProperty(bytes32 _propertyName, int _value) public;
 
     function getValueTypeOf(bytes32 _propertyName) public view returns (uint /* SettingsValueTypes */ );
+
+    event ChangeProperty(bytes32 indexed _propertyName, uint256 _type);
 }
