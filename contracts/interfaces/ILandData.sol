@@ -21,7 +21,4 @@ contract ILandData {
         uint soilRate,
         uint flag);
 
-    function encodeTokenId(int _x, int _y) pure public returns (uint);
-
-
 }
