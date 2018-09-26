@@ -1,6 +1,6 @@
 {
   "name": "@evolutionland/common",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Common Contracts for Evolution Land",
   "main": "truffle-config.js",
   "directories": {
