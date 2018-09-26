@@ -3,5 +3,5 @@
 
 ## Installing
 ```sh
-npm install evolutionlandcommon
+npm install @evolutionland/common
 ```
