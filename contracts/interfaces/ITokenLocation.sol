@@ -10,21 +10,15 @@ contract ITokenLocation {
     function getTokenLocation(uint _tokenId) public view returns (int, int);
 
     function encodeLocationId(int _x, int _y) public pure  returns (uint result) {
-        return _encodeLocationId(_x, _y);
-    }
-
-    function _encodeLocationId(int _x, int _y) internal pure  returns (uint result) {
         return _unsafeEncodeLocationId(_x, _y);
     }
+
     function _unsafeEncodeLocationId(int _x, int _y) internal pure  returns (uint) {
         return ((uint(_x) * FACTOR) & CLEAR_LOW) | (uint(_y) & CLEAR_HIGH) + 1;
     }
 
     function decodeLocationId(uint _positionId) public pure  returns (int, int) {
-        return _decodeLocationId(_positionId);
-    }
-    function _decodeLocationId(uint _positionId) internal pure  returns (int x, int y) {
-        (x, y) = _unsafeDecodeLocationId(_positionId);
+        return _unsafeDecodeLocationId(_positionId);
     }
 
     function _unsafeDecodeLocationId(uint _value) internal pure  returns (int x, int y) {
