@@ -16,7 +16,7 @@ contract InterstellarEncoder is IInterstellarEncoder {
         require(contractAddress2Id[_tokenAddress] > 0, "Contract address does not exist");
 
         _tokenId = (MAGIC_NUMBER << 248) + (CHAIN_ID << 240) + (uint256(contractId) << 224) 
-            + (CHAIN_ID << 216) + (uint256(contractId) << 200) + (uint256(ObjectClass.LAND) << 192) + (CURRENT_LAND << 128) + uint256(_objectIndex);
+            + (CHAIN_ID << 216) + (uint256(contractId) << 200) + (uint256(_objectClass) << 192) + (CURRENT_LAND << 128) + uint256(_objectIndex);
     }
 
     function registerNewTokenContract(address _tokenAddress) public onlyOwner {

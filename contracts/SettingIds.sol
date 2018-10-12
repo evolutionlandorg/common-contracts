@@ -10,4 +10,6 @@ contract SettingIds {
     bytes32 public constant CONTRACT_ATLANTIS_ERC721LAND = "CONTRACT_ATLANTIS_ERC721LAND";
 
     bytes32 public constant CONTRACT_LAND_DATA = "CONTRACT_LAND_DATA";
+
+    bytes32 public constant CONTRACT_INTERSTELLAR_ENCODER = "CONTRACT_INTERSTELLAR_ENCODER";
 }
