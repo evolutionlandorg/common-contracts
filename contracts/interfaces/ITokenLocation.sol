@@ -2,12 +2,18 @@ pragma solidity ^0.4.24;
 
 contract ITokenLocation {
 
+    bytes4 internal constant InterfaceId_ITokenLocationExists = 0x6033d48c;
+    /*
+    * 0x6033d48c ===
+    *   bytes4(keccak256('getTokenLocation(uint256)'))
+    */
+
     uint256 constant CLEAR_LOW = 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000;
     uint256 constant CLEAR_HIGH = 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
     uint256 constant FACTOR = 0x100000000000000000000000000000000;
 
     // virtual api
-    function getTokenLocation(uint _tokenId) public view returns (int, int);
+    function getTokenLocation(uint256 _tokenId) public view returns (int, int);
 
     function encodeLocationId(int _x, int _y) public pure  returns (uint result) {
         return _unsafeEncodeLocationId(_x, _y);

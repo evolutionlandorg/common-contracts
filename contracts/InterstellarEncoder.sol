@@ -21,11 +21,15 @@ contract InterstellarEncoder is IInterstellarEncoder, Ownable {
 
     function registerNewTokenContract(address _tokenAddress) public onlyOwner {
         require(contractAddress2Id[_tokenAddress] == 0, "Contract address already exist");
-        require(currentContractId < 65535, "Contract Id already reach maximum.");
+        require(lastContractId < 65535, "Contract Id already reach maximum.");
 
         lastContractId += 1;
 
-        contractAddress2Id[_tokenAdress] = lastContractId;
-        contractId2Address[lastContractId] = _tokenAdress;
+        contractAddress2Id[_tokenAddress] = lastContractId;
+        contractId2Address[lastContractId] = _tokenAddress;
+    }
+
+    function getContractAddress(uint256 _tokenId) public view returns (address) {
+        return contractId2Address[uint16((_tokenId << 16) >> 30)];
     }
 }

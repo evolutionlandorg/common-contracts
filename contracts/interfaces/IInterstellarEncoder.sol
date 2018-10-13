@@ -12,4 +12,6 @@ contract IInterstellarEncoder {
     }
 
     function encodeTokenId(address _tokenAddress, uint8 _objectClass, uint128 _objectIndex) public view returns (uint256 _tokenId);
+
+    function getContractAddress(uint256 _tokenId) public view returns (address);
 }
