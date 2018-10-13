@@ -15,6 +15,10 @@ contract ITokenLocation {
     // virtual api
     function getTokenLocation(uint256 _tokenId) public view returns (int, int);
 
+    function hasLocation(uint256 _tokenId) public view returns (bool);
+
+    function setTokenLocation(uint256 _tokenId, int _x, int _y) public;
+
     function encodeLocationId(int _x, int _y) public pure  returns (uint result) {
         return _unsafeEncodeLocationId(_x, _y);
     }
