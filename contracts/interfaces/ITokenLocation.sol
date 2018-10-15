@@ -11,6 +11,7 @@ contract ITokenLocation {
     uint256 constant CLEAR_LOW =    0x00fffffffffffffffffffffffffffffff0000000000000000000000000000000;// <2, 31, 31> avoid overflow for add 1.
     uint256 constant CLEAR_HIGH =   0x000000000000000000000000000000000fffffffffffffffffffffffffffffff;// <2, 31, 31>
     uint256 constant APPEND_HIGH =  0xfffffffffffffffffffffffffffffffff0000000000000000000000000000000;
+    uint256 constant MAX_LOCATION_ID =    0x0100000000000000000000000000000000000000000000000000000000000000;
     uint256 constant FACTOR = 0x10000000000000000000000000000000; // <16 ** 31> or <2 ** 124>
 
     // The location is in micron.
@@ -24,7 +25,11 @@ contract ITokenLocation {
         return _unsafeEncodeLocationId(_x, _y);
     }
 
+    // x, y should between -2^123 (-10633823966279326983230456482242756608) and 2^123 - 1 (10633823966279326983230456482242756607).
     function _unsafeEncodeLocationId(int _x, int _y) internal pure  returns (uint) {
+        require(_x >= -10633823966279326983230456482242756608 && _x <= 10633823966279326983230456482242756607, "Invalid value.");
+        require(_y >= -10633823966279326983230456482242756608 && _y <= 10633823966279326983230456482242756607, "Invalid value.");
+        
         return (((uint(_x) * FACTOR) & CLEAR_LOW) | (uint(_y) & CLEAR_HIGH)) + 1;
     }
 
@@ -34,6 +39,7 @@ contract ITokenLocation {
 
     function _unsafeDecodeLocationId(uint _value) internal pure  returns (int x, int y) {
         require(_value > 0, "Location Id is start from 1, should larger than zero");
+        require(_value <= MAX_LOCATION_ID, "Location is larger than maximum.");
         x = expandNegative128BitCast(((_value - 1) & CLEAR_LOW) >> 124);
         y = expandNegative128BitCast((_value - 1) & CLEAR_HIGH);
     }
