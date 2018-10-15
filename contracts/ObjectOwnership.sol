@@ -79,7 +79,7 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
         super._burn(_to, _tokenId);
     }
 
-    function mint(addess _to, uint256 _tokenId) public isAuth {
+    function mint(address _to, uint256 _tokenId) public isAuth {
         super._mint(_to, _tokneId);
     }
 
