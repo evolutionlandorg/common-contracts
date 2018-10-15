@@ -5,7 +5,7 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 import "./RBACWithAuth.sol";
 import "./interfaces/ISettingsRegistry.sol";
 
-contract TokenOwnership is ERC721Token("Atlantis Land","OASIS"), RBACWithAuth {
+contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWithAuth {
     ISettingsRegistry public registry;
 
     bool private singletonLock = false;
@@ -61,8 +61,26 @@ contract TokenOwnership is ERC721Token("Atlantis Land","OASIS"), RBACWithAuth {
     }
 
     // TODO: mint and following Interstella coding
-    function mint(address _to, uint256 _tokenId) public isAuth {
+    function mintObject(address _to, uint128 _objectId) public isAuth returns (uint256 _tokenId) {
+        address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
+        require(interstellarEncoder != address(0), "Contract Interstellar Encoder does not exist.");
+
+        _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenId(
+            address(this), uint8(IInterstellarEncoder.ObjectClass.LAND), _objectId);
         super._mint(_to, _tokenId);
+    }
+
+    function burnObject(address _to, uint128 _objectId) public isAuth returns (uint256 _tokenId) {
+        address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
+        require(interstellarEncoder != address(0), "Contract Interstellar Encoder does not exist.");
+
+        _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenId(
+            address(this), uint8(IInterstellarEncoder.ObjectClass.LAND), _objectId);
+        super._burn(_to, _tokenId);
+    }
+
+    function mint(addess _to, uint256 _tokenId) public isAuth {
+        super._mint(_to, _tokneId);
     }
 
     function burn(address _to, uint256 _tokenId) public isAuth {

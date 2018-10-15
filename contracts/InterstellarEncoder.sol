@@ -9,14 +9,23 @@ contract InterstellarEncoder is IInterstellarEncoder, Ownable {
     mapping(uint16 => address) public contractId2Address;
     mapping(address => uint16) public contractAddress2Id;
 
+    mapping(address => uint8) public objectContract2ObjectClass;
+
     uint16 lastContractId = 0;
 
-    function encodeTokenId(address _tokenAddress, uint8 _objectClass, uint128 _objectIndex) public view returns (uint256 _tokenId) {
+    function encodeTokenId(address _tokenAddress, uint8 _objectClass, uint128 _objectId) public view returns (uint256 _tokenId) {
         uint16 contractId = contractAddress2Id[_tokenAddress];
         require(contractAddress2Id[_tokenAddress] > 0, "Contract address does not exist");
 
         _tokenId = (MAGIC_NUMBER << 248) + (CHAIN_ID << 240) + (uint256(contractId) << 224) 
-            + (CHAIN_ID << 216) + (uint256(contractId) << 200) + (uint256(_objectClass) << 192) + (CURRENT_LAND << 128) + uint256(_objectIndex);
+            + (CHAIN_ID << 216) + (uint256(contractId) << 200) + (uint256(_objectClass) << 192) + (CURRENT_LAND << 128) + uint256(_objectId);
+    }
+
+    function encodeTokenIdForObjectContract(
+        address _tokenAddress, address _objectContract, uint128 _objectId) public view returns (uint256 _tokenId) {
+        require (objectContract2ObjectClass[_objectContract] > 0, "Object class for this object contract does not exist.");
+
+        _tokenId = encodeTokenId(_tokenAddress, objectContract2ObjectClass[_objectContract], _objectId);
     }
 
     function registerNewTokenContract(address _tokenAddress) public onlyOwner {
@@ -27,6 +36,10 @@ contract InterstellarEncoder is IInterstellarEncoder, Ownable {
 
         contractAddress2Id[_tokenAddress] = lastContractId;
         contractId2Address[lastContractId] = _tokenAddress;
+    }
+
+    function registerNewObjectClass(address _objectContract, uint8 objectClass) public onlyOwner {
+        objectContract2ObjectClass[_objectContract] = objectClass;
     }
 
     function getContractAddress(uint256 _tokenId) public view returns (address) {
