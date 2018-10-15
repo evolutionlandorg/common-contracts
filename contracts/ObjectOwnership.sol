@@ -2,10 +2,12 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
-import "./RBACWithAuth.sol";
+import "./interfaces/IInterstellarEncoder.sol";
 import "./interfaces/ISettingsRegistry.sol";
+import "./RBACWithAuth.sol";
+import "./SettingIds.sol";
 
-contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWithAuth {
+contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWithAuth, SettingIds {
     ISettingsRegistry public registry;
 
     bool private singletonLock = false;
@@ -65,8 +67,8 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
         address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
         require(interstellarEncoder != address(0), "Contract Interstellar Encoder does not exist.");
 
-        _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenId(
-            address(this), uint8(IInterstellarEncoder.ObjectClass.LAND), _objectId);
+        _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenIdForObjectContract(
+            address(this), msg.sender, _objectId);
         super._mint(_to, _tokenId);
     }
 
@@ -74,13 +76,13 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
         address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
         require(interstellarEncoder != address(0), "Contract Interstellar Encoder does not exist.");
 
-        _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenId(
-            address(this), uint8(IInterstellarEncoder.ObjectClass.LAND), _objectId);
+        _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenIdForObjectContract(
+            address(this), msg.sender, _objectId);
         super._burn(_to, _tokenId);
     }
 
     function mint(address _to, uint256 _tokenId) public isAuth {
-        super._mint(_to, _tokneId);
+        super._mint(_to, _tokenId);
     }
 
     function burn(address _to, uint256 _tokenId) public isAuth {
