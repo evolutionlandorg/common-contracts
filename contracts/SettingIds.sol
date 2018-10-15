@@ -17,7 +17,7 @@ contract SettingIds {
 
     bytes32 public constant CONTRACT_SOIL_ERC20_TOKEN = "CONTRACT_SOIL_ERC20_TOKEN";
 
-    bytes32 public constant CONTRACT_TOKEN_OWNERSHIP = "CONTRACT_TOKEN_OWNERSHIP";
+    bytes32 public constant CONTRACT_OBJECT_OWNERSHIP = "CONTRACT_OBJECT_OWNERSHIP";
 
     bytes32 public constant CONTRACT_LAND_BASE = "CONTRACT_LAND_BASE";
 
