@@ -27,21 +27,19 @@ contract ITokenLocation {
 
     // The location is in micron.
 
-    function getTokenLocation100M(uint256 _tokenId) public view returns (int, int);
-
-    function setTokenLocation100M(uint256 _tokenId, int _x, int _y);
-
     function getTokenLocation(uint256 _tokenId) public view returns (int, int);
 
     function setTokenLocation(uint256 _tokenId, int _x, int _y) public;
 
-    function encodeLocationId100M(int _x, int _y) public pure  returns (uint result);
-
     function encodeLocationId(int _x, int _y) public pure  returns (uint result);
-
-    function decodeLocationId100M(uint _positionId) public pure  returns (int, int);
 
     function decodeLocationId(uint _positionId) public pure  returns (int, int);
 
+    function getTokenLocationHM(uint256 _tokenId) public view returns (int, int);
 
+    function setTokenLocationHM(uint256 _tokenId, int _x, int _y) public;
+
+    function encodeLocationIdHM(int _x, int _y) public pure  returns (uint result);
+
+    function decodeLocationIdHM(uint _positionId) public pure  returns (int, int);
 }

@@ -11,7 +11,7 @@ contract InterstellarEncoder is IInterstellarEncoder, Ownable {
 
     mapping(address => uint8) public objectContract2ObjectClass;
 
-    uint16 lastContractId = 0;
+    uint16 public lastContractId = 0;
 
     function encodeTokenId(address _tokenAddress, uint8 _objectClass, uint128 _objectId) public view returns (uint256 _tokenId) {
         uint16 contractId = contractAddress2Id[_tokenAddress];
