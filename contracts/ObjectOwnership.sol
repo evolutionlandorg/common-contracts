@@ -64,7 +64,6 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
 
     function mintObject(address _to, uint128 _objectId) public isAuth returns (uint256 _tokenId) {
         address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
-        require(interstellarEncoder != address(0), "Contract Interstellar Encoder does not exist.");
 
         _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenIdForObjectContract(
             address(this), msg.sender, _objectId);
@@ -73,7 +72,6 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
 
     function burnObject(address _to, uint128 _objectId) public isAuth returns (uint256 _tokenId) {
         address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
-        require(interstellarEncoder != address(0), "Contract Interstellar Encoder does not exist.");
 
         _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenIdForObjectContract(
             address(this), msg.sender, _objectId);
