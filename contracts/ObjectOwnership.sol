@@ -62,7 +62,6 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
         registry = ISettingsRegistry(_registry);
     }
 
-    // TODO: mint and following Interstella coding
     function mintObject(address _to, uint128 _objectId) public isAuth returns (uint256 _tokenId) {
         address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
         require(interstellarEncoder != address(0), "Contract Interstellar Encoder does not exist.");
