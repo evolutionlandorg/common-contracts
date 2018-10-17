@@ -1,5 +1,6 @@
 const LocationCoder = artifacts.require("./LocationCoder.sol");
 const TokenLocation = artifacts.require("./TokenLocation.sol");
+const InterstellarEncoder = artifacts.require("./InterstellarEncoder.sol");
 
 module.exports = function(deployer, network, accounts) {
     if (network == "develop")
@@ -16,4 +17,6 @@ async function deployOnLocal(deployer, network, accounts) {
     await deployer.deploy(LocationCoder);
     await deployer.link(LocationCoder, TokenLocation);
     await deployer.deploy(TokenLocation);
+
+    await deployer.deploy(InterstellarEncoder);
 }

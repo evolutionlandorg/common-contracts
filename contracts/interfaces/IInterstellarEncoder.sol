@@ -1,6 +1,8 @@
 pragma solidity ^0.4.24;
 
 contract IInterstellarEncoder {
+    uint256 constant CLEAR_HIGH =  0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
+
     uint256 public constant MAGIC_NUMBER = 42;    // Interstellar Encoding Magic Number.
     uint256 public constant CHAIN_ID = 1; // Ethereum mainet.
     uint256 public constant CURRENT_LAND = 1; // 1 is Atlantis, 0 is NaN.
@@ -21,4 +23,6 @@ contract IInterstellarEncoder {
         address _tokenAddress, address _objectContract, uint128 _objectId) public view returns (uint256 _tokenId);
 
     function getContractAddress(uint256 _tokenId) public view returns (address);
+
+    function getObjectId(uint256 _tokenId) public view returns (uint128 _objectId);
 }
