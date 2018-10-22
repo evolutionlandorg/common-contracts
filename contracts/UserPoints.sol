@@ -32,6 +32,14 @@ contract UserPoints is DSAuth, IUserPoints {
         emit LogSetOwner(msg.sender);
     }
 
+    function pointsSupply() public view returns (uint256) {
+        return allUserPoints;
+    }
+
+    function pointsBalanceOf(address _user) public view returns (uint256) {
+        return points[_user];
+    }
+
     function addPoints(address _user, uint256 _pointAmount) public auth {
         points[_user] = points[_user].add(_pointAmount);
         allUserPoints = allUserPoints.add(_pointAmount);

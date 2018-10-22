@@ -7,4 +7,8 @@ contract IUserPoints {
     function addPoints(address _user, uint256 _pointAmount) public;
 
     function subPoints(address _user, uint256 _pointAmount) public;
+
+    function pointsSupply() public view returns (uint256);
+
+    function pointsBalanceOf(address _user) public view returns (uint256);
 }
