@@ -5,4 +5,4 @@ package-lock.json
 .idea
 contracts-flattener
 truffle.js
-
+scripts
