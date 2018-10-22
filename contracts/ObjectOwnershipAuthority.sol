@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "@evolutionland/common/contracts/interfaces/IAuthority.sol";
+import "./interfaces/IAuthority.sol";
 
 contract ObjectOwnershipAuthority is IAuthority {
 
