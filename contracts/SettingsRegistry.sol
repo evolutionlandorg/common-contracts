@@ -1,13 +1,13 @@
 pragma solidity ^0.4.24;
 
 import "./interfaces/ISettingsRegistry.sol";
-import "./RBACWithAuth.sol";
+import "./DSAuth.sol";
 
 /**
  * @title SettingsRegistry
  * @dev This contract holds all the settings for updating and querying.
  */
-contract SettingsRegistry is ISettingsRegistry, RBACWithAuth {
+contract SettingsRegistry is ISettingsRegistry, DSAuth {
 
     mapping(bytes32 => uint256) public uintProperties;
     mapping(bytes32 => string) public stringProperties;
@@ -17,9 +17,6 @@ contract SettingsRegistry is ISettingsRegistry, RBACWithAuth {
     mapping(bytes32 => int256) public intProperties;
 
     mapping(bytes32 => SettingsValueTypes) public valueTypes;
-
-
-    // TODO: add events.
 
     function uintOf(bytes32 _propertyName) public view returns (uint256) {
         require(valueTypes[_propertyName] == SettingsValueTypes.UINT, "Property type does not match.");
@@ -51,7 +48,7 @@ contract SettingsRegistry is ISettingsRegistry, RBACWithAuth {
         return intProperties[_propertyName];
     }
 
-    function setUintProperty(bytes32 _propertyName, uint _value) public isAuth {
+    function setUintProperty(bytes32 _propertyName, uint _value) public auth {
         require(
             valueTypes[_propertyName] == SettingsValueTypes.NONE || valueTypes[_propertyName] == SettingsValueTypes.UINT, "Property type does not match.");
         uintProperties[_propertyName] = _value;
@@ -60,7 +57,7 @@ contract SettingsRegistry is ISettingsRegistry, RBACWithAuth {
         emit ChangeProperty(_propertyName, uint256(SettingsValueTypes.UINT));
     }
 
-    function setStringProperty(bytes32 _propertyName, string _value) public isAuth {
+    function setStringProperty(bytes32 _propertyName, string _value) public auth {
         require(
             valueTypes[_propertyName] == SettingsValueTypes.NONE || valueTypes[_propertyName] == SettingsValueTypes.STRING, "Property type does not match.");
         stringProperties[_propertyName] = _value;
@@ -69,7 +66,7 @@ contract SettingsRegistry is ISettingsRegistry, RBACWithAuth {
         emit ChangeProperty(_propertyName, uint256(SettingsValueTypes.STRING));
     }
 
-    function setAddressProperty(bytes32 _propertyName, address _value) public isAuth {
+    function setAddressProperty(bytes32 _propertyName, address _value) public auth {
         require(
             valueTypes[_propertyName] == SettingsValueTypes.NONE || valueTypes[_propertyName] == SettingsValueTypes.ADDRESS, "Property type does not match.");
 
@@ -79,7 +76,7 @@ contract SettingsRegistry is ISettingsRegistry, RBACWithAuth {
         emit ChangeProperty(_propertyName, uint256(SettingsValueTypes.ADDRESS));
     }
 
-    function setBytesProperty(bytes32 _propertyName, bytes _value) public isAuth {
+    function setBytesProperty(bytes32 _propertyName, bytes _value) public auth {
         require(
             valueTypes[_propertyName] == SettingsValueTypes.NONE || valueTypes[_propertyName] == SettingsValueTypes.BYTES, "Property type does not match.");
 
@@ -89,7 +86,7 @@ contract SettingsRegistry is ISettingsRegistry, RBACWithAuth {
         emit ChangeProperty(_propertyName, uint256(SettingsValueTypes.BYTES));
     }
 
-    function setBoolProperty(bytes32 _propertyName, bool _value) public isAuth {
+    function setBoolProperty(bytes32 _propertyName, bool _value) public auth {
         require(
             valueTypes[_propertyName] == SettingsValueTypes.NONE || valueTypes[_propertyName] == SettingsValueTypes.BOOL, "Property type does not match.");
 
@@ -99,7 +96,7 @@ contract SettingsRegistry is ISettingsRegistry, RBACWithAuth {
         emit ChangeProperty(_propertyName, uint256(SettingsValueTypes.BOOL));
     }
 
-    function setIntProperty(bytes32 _propertyName, int _value) public isAuth {
+    function setIntProperty(bytes32 _propertyName, int _value) public auth {
         require(
             valueTypes[_propertyName] == SettingsValueTypes.NONE || valueTypes[_propertyName] == SettingsValueTypes.INT, "Property type does not match.");
 

@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
 import "./interfaces/ITokenLocation.sol";
-import "./RBACWithAuth.sol";
+import "./DSAuth.sol";
 import "./LocationCoder.sol";
 
-contract TokenLocation is RBACWithAuth, ITokenLocation {
+contract TokenLocation is DSAuth, LocationCoder, ITokenLocation {
     bool private singletonLock = false;
 
     // token id => encode(x,y) postiion in map, the location is in micron.
@@ -20,9 +20,8 @@ contract TokenLocation is RBACWithAuth, ITokenLocation {
     }
 
     function initializeContract() public singletonLockCall {
-        // Ownable constructor
-        addRole(msg.sender, ROLE_ADMIN);
-        addRole(msg.sender, ROLE_AUTH_CONTROLLER);
+        owner = msg.sender;
+        emit LogSetOwner(msg.sender);
     }
 
     function hasLocation(uint256 _tokenId) public view returns (bool) {
@@ -34,7 +33,7 @@ contract TokenLocation is RBACWithAuth, ITokenLocation {
         return (LocationCoder.toHM(_x), LocationCoder.toHM(_y));
     }
 
-    function setTokenLocationHM(uint256 _tokenId, int _x, int _y) public isAuth {
+    function setTokenLocationHM(uint256 _tokenId, int _x, int _y) public auth {
         setTokenLocation(_tokenId, LocationCoder.toUM(_x), LocationCoder.toUM(_y));
     }
 
@@ -44,7 +43,7 @@ contract TokenLocation is RBACWithAuth, ITokenLocation {
         return LocationCoder.decodeLocationIdXY(locationId);
     }
 
-    function setTokenLocation(uint256 _tokenId, int _x, int _y) public isAuth {
+    function setTokenLocation(uint256 _tokenId, int _x, int _y) public auth {
         tokenId2LocationId[_tokenId] = LocationCoder.encodeLocationIdXY(_x, _y);
     }
 }

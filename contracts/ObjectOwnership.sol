@@ -4,10 +4,10 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 import "./interfaces/IInterstellarEncoder.sol";
 import "./interfaces/ISettingsRegistry.sol";
-import "./RBACWithAuth.sol";
+import "./DSAuth.sol";
 import "./SettingIds.sol";
 
-contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWithAuth, SettingIds {
+contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), DSAuth, SettingIds {
     ISettingsRegistry public registry;
 
     bool private singletonLock = false;
@@ -22,15 +22,6 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
     }
 
     /**
-     * @dev Guarantees msg.sender is owner of the given token
-     * @param _tokenId uint256 ID of the token to validate its ownership belongs to msg.sender
-     */
-    modifier onlyOwnerOf(uint256 _tokenId) {
-        require(ownerOf(_tokenId) == msg.sender);
-        _;
-    }
-
-        /**
      * @dev Atlantis's constructor 
      */
     constructor () public {
@@ -42,8 +33,8 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
      */
     function initializeContract(address _registry) public singletonLockCall {
         // Ownable constructor
-        addRole(msg.sender, ROLE_ADMIN);
-        addRole(msg.sender, ROLE_AUTH_CONTROLLER);
+        owner = msg.sender;
+        emit LogSetOwner(msg.sender);
 
         // SupportsInterfaceWithLookup constructor
         _registerInterface(InterfaceId_ERC165);
@@ -62,7 +53,7 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
         registry = ISettingsRegistry(_registry);
     }
 
-    function mintObject(address _to, uint128 _objectId) public isAuth returns (uint256 _tokenId) {
+    function mintObject(address _to, uint128 _objectId) public auth returns (uint256 _tokenId) {
         address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
 
         _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenIdForObjectContract(
@@ -70,7 +61,7 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
         super._mint(_to, _tokenId);
     }
 
-    function burnObject(address _to, uint128 _objectId) public isAuth returns (uint256 _tokenId) {
+    function burnObject(address _to, uint128 _objectId) public auth returns (uint256 _tokenId) {
         address interstellarEncoder = registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER);
 
         _tokenId = IInterstellarEncoder(interstellarEncoder).encodeTokenIdForObjectContract(
@@ -78,11 +69,11 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
         super._burn(_to, _tokenId);
     }
 
-    function mint(address _to, uint256 _tokenId) public isAuth {
+    function mint(address _to, uint256 _tokenId) public auth {
         super._mint(_to, _tokenId);
     }
 
-    function burn(address _to, uint256 _tokenId) public isAuth {
+    function burn(address _to, uint256 _tokenId) public auth {
         super._burn(_to, _tokenId);
     }
 
@@ -92,11 +83,13 @@ contract ObjectOwnership is ERC721Token("Evolution Land Objects","EVO"), RBACWit
         address _to,
         uint _tokenId,
         bytes _extraData
-    ) public onlyOwnerOf(_tokenId) {
+    ) public {
         // set _to to the auction contract
         approve(_to, _tokenId);
-        if(!_to.call(bytes4(keccak256("receiveApproval(address,uint256,bytes)")),
-            abi.encode(msg.sender, _tokenId, _extraData))) {
+
+        if(!_to.call(
+                bytes4(keccak256("receiveApproval(address,uint256,bytes)")), abi.encode(msg.sender, _tokenId, _extraData)
+                )) {
             revert();
         }
     }

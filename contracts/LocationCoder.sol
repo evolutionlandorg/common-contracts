@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-library LocationCoder {
+contract LocationCoder {
     // the allocation of the [x, y, z] is [0<1>, x<21>, y<21>, z<21>]
     uint256 constant CLEAR_YZ = 0x0fffffffffffffffffffff000000000000000000000000000000000000000000;
     uint256 constant CLEAR_XZ = 0x0000000000000000000000fffffffffffffffffffff000000000000000000000;

@@ -15,7 +15,6 @@ async function deployOnLocal(deployer, network, accounts) {
     console.log(network);
 
     await deployer.deploy(LocationCoder);
-    await deployer.link(LocationCoder, TokenLocation);
     await deployer.deploy(TokenLocation);
 
     await deployer.deploy(InterstellarEncoder);
