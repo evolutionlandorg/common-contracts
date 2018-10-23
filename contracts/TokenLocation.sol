@@ -4,7 +4,9 @@ import "./interfaces/ITokenLocation.sol";
 import "./DSAuth.sol";
 import "./LocationCoder.sol";
 
-contract TokenLocation is DSAuth, LocationCoder, ITokenLocation {
+contract TokenLocation is DSAuth, ITokenLocation {
+    using LocationCoder for *;
+    
     bool private singletonLock = false;
 
     // token id => encode(x,y) postiion in map, the location is in micron.
