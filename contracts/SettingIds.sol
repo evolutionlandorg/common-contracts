@@ -25,5 +25,7 @@ contract SettingIds {
 
     bytes32 public constant CONTRACT_LAND_BASE = "CONTRACT_LAND_BASE";
 
+    bytes32 public constant CONTRACT_USER_POINTS = "CONTRACT_USER_POINTS";
+
     bytes32 public constant CONTRACT_INTERSTELLAR_ENCODER = "CONTRACT_INTERSTELLAR_ENCODER";
 }
