@@ -44,7 +44,7 @@ contract UserPoints is DSAuth, IUserPoints {
         points[_user] = points[_user].add(_pointAmount);
         allUserPoints = allUserPoints.add(_pointAmount);
 
-        emit AddedPoints(_user, points[_user]);
+        emit AddedPoints(_user, _pointAmount);
     }
 
     function subPoints(address _user, uint256 _pointAmount) public auth {
