@@ -1,8 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "./interfaces/IAuthority.sol";
-
-contract UserPointsAuthority is IAuthority {
+contract UserPointsAuthority {
     mapping (address => bool) public whiteList;
 
     constructor(address[] _whitelists) public {

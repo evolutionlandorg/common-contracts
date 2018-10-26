@@ -1,8 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "./interfaces/IAuthority.sol";
-
-contract MintAndBurnAuthority is IAuthority {
+contract MintAndBurnAuthority {
 
     mapping (address => bool) public whiteList;
 

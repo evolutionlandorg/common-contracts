@@ -1,8 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "./interfaces/IAuthority.sol";
-
-contract TokenLocationAuthority is IAuthority {
+contract TokenLocationAuthority {
 
     mapping (address => bool) public whiteList;
 

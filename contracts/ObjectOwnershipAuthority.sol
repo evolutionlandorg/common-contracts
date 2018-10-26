@@ -1,8 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "./interfaces/IAuthority.sol";
-
-contract ObjectOwnershipAuthority is IAuthority {
+contract ObjectOwnershipAuthority {
 
     mapping (address => bool) public whiteList;
 
