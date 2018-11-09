@@ -28,4 +28,6 @@ contract SettingIds {
     bytes32 public constant CONTRACT_USER_POINTS = "CONTRACT_USER_POINTS";
 
     bytes32 public constant CONTRACT_INTERSTELLAR_ENCODER = "CONTRACT_INTERSTELLAR_ENCODER";
+
+    bytes32 public constant CONTRACT_DIVIDENDS_POOL = "CONTRACT_DIVIDENDS_POOL";
 }
