@@ -25,4 +25,6 @@ contract IInterstellarEncoder {
     function getContractAddress(uint256 _tokenId) public view returns (address);
 
     function getObjectId(uint256 _tokenId) public view returns (uint128 _objectId);
+
+    function getObjectClass(uint256 _tokenId) public view returns (uint8);
 }
