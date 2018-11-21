@@ -10,5 +10,7 @@ contract ITokenActivity {
     function startTokenActivityFromContract(
         uint256 _tokenId, address _user, address _owner, uint256 _startTime, uint256 _endTime, uint256 _price) public;
 
-    function stopTokenActivity(uint256 _tokenId) public;
+    function stopTokenActivityFromContract(uint256 _tokenId) public;
+
+    function removeTokenActivity(uint256 _tokenId) public;
 }

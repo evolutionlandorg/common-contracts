@@ -15,7 +15,8 @@ contract TokenActivity is DSAuth, ITokenActivity, SettingIds {
         uint48  startTime;
         uint48  endTime;
         uint256 price;  // RING per second.
-        address activityContract;
+        address activityContract;   // can only be used in this activity.
+        bool isInUse;
     }
 
     bool private singletonLock = false;
@@ -72,11 +73,22 @@ contract TokenActivity is DSAuth, ITokenActivity, SettingIds {
             startTime: uint48(_startTime),
             endTime : uint48(_endTime),
             price : _price,
-            activityContract : msg.sender
+            activityContract : msg.sender,
+            isInUse: true
         });
     }
 
-    function stopTokenActivity(uint256 _tokenId) public {
+    // TODO: startTokenActivity for those are not in use yet. One Object can not be used twice. TODO: check the time.
+
+    function stopTokenActivityFromContract(uint256 _tokenId) public auth {
+        require(
+            tokenId2ActivityStatus[_tokenId].activityContract == msg.sender || tokenId2ActivityStatus[_tokenId].activityContract == address(0), "Msg sender must be the activity");
+        require(tokenId2ActivityStatus[_tokenId].isInUse == true, "Token already in another activity.");
+
+        tokenId2ActivityStatus[_tokenId].isInUse = false;
+    }
+
+    function removeTokenActivity(uint256 _tokenId) public {
         require(tokenId2ActivityStatus[_tokenId].user != address(0), "Object does not exist.");
 
         // require(tokenId2ActivityStatus[_tokenId].user == msg.sender || tokenId2ActivityStatus[_tokenId].owner == msg.sender), "Only user or owner can stop.";
