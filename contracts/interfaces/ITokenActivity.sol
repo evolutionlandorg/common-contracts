@@ -1,8 +1,6 @@
 pragma solidity ^0.4.24;
 
 contract ITokenActivity {
-    uint48 public constant MAX_UINT48_TIME = 281474976710655;
-
     function isObjectInActivity(uint256 _tokenId) public view returns (bool);
 
     function getTokenOwner(uint256 _tokenId) public view returns (address);
