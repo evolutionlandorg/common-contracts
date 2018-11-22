@@ -31,5 +31,5 @@ contract SettingIds {
 
     bytes32 public constant CONTRACT_DIVIDENDS_POOL = "CONTRACT_DIVIDENDS_POOL";
 
-    bytes32 public constant CONTRACT_TOKEN_ACTIVITY = "CONTRACT_TOKEN_ACTIVITY";
+    bytes32 public constant CONTRACT_TOKEN_USE = "CONTRACT_TOKEN_USE";
 }
