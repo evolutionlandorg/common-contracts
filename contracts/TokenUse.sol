@@ -23,6 +23,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint256 price;  // RING per second.
         address acceptedActivity;   // can only be used in this activity.
         address workingActivity;    // 0 means no working activity currently
+        uint96 fee; // for robot get incentives for removing token use.
     }
 
     struct UseOffer {
@@ -96,6 +97,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(address(this), msg.sender, _tokenId);
 
+        if(tokenId2UseOffer[_tokenId].fee > 0) {
+            require(
+                ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(
+                address(this), msg.sender, uint256(tokenId2UseOffer[_tokenId].fee)), "Fee refund failed.");
+        }
+
         delete tokenId2UseOffer[_tokenId];
     }
 
@@ -114,7 +121,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             endTime : uint48(now) + tokenId2UseOffer[_tokenId].duration,
             price : tokenId2UseOffer[_tokenId].price,
             acceptedActivity : tokenId2UseOffer[_tokenId].acceptedActivity,
-            workingActivity: address(0)
+            workingActivity: address(0),
+            fee: tokenId2UseOffer[_tokenId].fee
         });
 
         delete tokenId2UseOffer[_tokenId];
@@ -137,7 +145,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             endTime : uint48(_endTime),
             price : _price,
             acceptedActivity : msg.sender,
-            workingActivity: msg.sender
+            workingActivity: msg.sender,
+            fee: 0
         });
     }
 
@@ -156,12 +165,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint length = _tokenIds.length;
         for(uint i = 0; i < length; i++) {
             require(tokenId2UseStatus[_tokenIds[i]].user == address(0), "Token already in another use.");
-            // already hire this token
-            if(nft.ownerOf(_tokenIds[i]) == address(this) && tokenId2UseStatus[_tokenIds[i]].user == _user) {
-                // make sure it's available to use
-                require(tokenId2UseStatus[_tokenIds[i]].startTime <= now && now <= tokenId2UseStatus[_tokenIds[i]].endTime);
-                continue;
-            }
+
             nft.transferFrom(_owner, address(this), _tokenIds[i]);
 
             tokenId2UseStatus[_tokenIds[i]] = UseStatus({
@@ -171,7 +175,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
                 endTime : uint48(_endTime),
                 price : _price,
                 acceptedActivity : msg.sender,
-                workingActivity: msg.sender
+                workingActivity: msg.sender,
+                fee: 0
             });
         }
     }
@@ -193,13 +198,11 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         // when in activity, only user can stop
         if(isObjectInUseStage(_tokenId)) {
             // TODO: Or require penalty
-            require(tokenId2UseStatus[_tokenId].user == msg.sender || tokenId2UseStatus[_tokenId].owner == msg.sender);
-            // make sure it's not harmful to the landlord who hire this tokenId
-            require(tokenId2UseStatus[_tokenId].endTime > 0 && now >= tokenId2UseStatus[_tokenId].endTime);
+            require(tokenId2UseStatus[_tokenId].user == msg.sender);
         }
 
-        if(tokenId2UseOffer[_tokenId].fee > 0) {
-            require(ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transfer(msg.sender, uint256(tokenId2UseOffer[_tokenId].fee)));
+        if(tokenId2UseStatus[_tokenId].fee > 0) {
+            require(ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transfer(msg.sender, uint256(tokenId2UseStatus[_tokenId].fee)));
         }
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(address(this), tokenId2UseStatus[_tokenId].owner, _tokenId);
