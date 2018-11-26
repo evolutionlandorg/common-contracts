@@ -30,6 +30,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint48 duration;
         uint256 price;
         address acceptedActivity;   // If 0, then accept any activity
+        uint96 fee;
     }
 
     bool private singletonLock = false;
@@ -72,8 +73,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         return tokenId2UseStatus[_tokenId].user;
     }
 
-    function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
+    function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, uint256 _fee) public {
         require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
+
+        if(_fee > 0) {
+            require(ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(msg.sender, address(this), uint256(_fee)));
+        }
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(msg.sender, address(this), _tokenId);
 
@@ -81,7 +86,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             owner: msg.sender,
             duration: uint48(_duration),
             price : _price,
-            acceptedActivity: _acceptedActivity
+            acceptedActivity: _acceptedActivity,
+            fee: uint96(_fee)
         });
     }
 
@@ -135,6 +141,41 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         });
     }
 
+    // for all erc721 tokens, both owned by msg.sender, or hired.
+    // @param _owner - in real-life use case, _owner == _user or _owner == this
+    //                  so there is no need to use address[] _owners for now
+    function batchStartTokenUseFromActivity(
+        uint256[] _tokenIds, address _user, address _owner, uint256 _startTime, uint256 _endTime, uint256 _price
+    ) public auth {
+        require(_user != address(0), "User can not be zero.");
+        require(_owner != address(0), "Owner can not be zero.");
+        require(IActivity(msg.sender).isActivity(), "Msg sender must be activity");
+
+        ERC721 nft = ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP));
+
+        uint length = _tokenIds.length;
+        for(uint i = 0; i < length; i++) {
+            require(tokenId2UseStatus[_tokenIds[i]].user == address(0), "Token already in another use.");
+            // already hire this token
+            if(nft.ownerOf(_tokenIds[i]) == address(this) && tokenId2UseStatus[_tokenIds[i]].user == _user) {
+                // make sure it's available to use
+                require(tokenId2UseStatus[_tokenIds[i]].startTime <= now && now <= tokenId2UseStatus[_tokenIds[i]].endTime);
+                continue;
+            }
+            nft.transferFrom(_owner, address(this), _tokenIds[i]);
+
+            tokenId2UseStatus[_tokenIds[i]] = UseStatus({
+                user: _user,
+                owner: _owner,
+                startTime: uint48(_startTime),
+                endTime : uint48(_endTime),
+                price : _price,
+                acceptedActivity : msg.sender,
+                workingActivity: msg.sender
+            });
+        }
+    }
+
     // TODO: startTokenActivity for those are not in use yet. One Object can not be used twice. TODO: check the time.
     function stopTokenUseFromActivity(uint256 _tokenId) public auth {
         require(
@@ -147,12 +188,18 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function removeTokenUse(uint256 _tokenId) public {
         require(tokenId2UseStatus[_tokenId].user != address(0), "Object does not exist.");
 
-        // require(tokenId2UseStatus[_tokenId].user == msg.sender || tokenId2UseStatus[_tokenId].owner == msg.sender), "Only user or owner can stop.";
+//         require(tokenId2UseStatus[_tokenId].user == msg.sender || tokenId2UseStatus[_tokenId].owner == msg.sender, "Only user or owner can stop.");
 
         // when in activity, only user can stop
         if(isObjectInUseStage(_tokenId)) {
             // TODO: Or require penalty
-            require(tokenId2UseStatus[_tokenId].user == msg.sender);
+            require(tokenId2UseStatus[_tokenId].user == msg.sender || tokenId2UseStatus[_tokenId].owner == msg.sender);
+            // make sure it's not harmful to the landlord who hire this tokenId
+            require(tokenId2UseStatus[_tokenId].endTime > 0 && now >= tokenId2UseStatus[_tokenId].endTime);
+        }
+
+        if(tokenId2UseOffer[_tokenId].fee > 0) {
+            require(ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transfer(msg.sender, uint256(tokenId2UseOffer[_tokenId].fee)));
         }
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(address(this), tokenId2UseStatus[_tokenId].owner, _tokenId);

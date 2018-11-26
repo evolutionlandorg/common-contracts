@@ -16,6 +16,9 @@ contract ITokenUse {
     function startTokenUseFromActivity(
         uint256 _tokenId, address _user, address _owner, uint256 _startTime, uint256 _endTime, uint256 _price) public;
 
+    function batchStartTokenUseFromActivity(
+        uint256[] _tokenIds, address _user, address _owner, uint256 _startTime, uint256 _endTime, uint256 _price) public;
+
     function stopTokenUseFromActivity(uint256 _tokenId) public;
 
     function removeTokenUse(uint256 _tokenId) public;
