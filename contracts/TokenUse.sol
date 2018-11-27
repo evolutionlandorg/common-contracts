@@ -8,6 +8,7 @@ import "./interfaces/IActivity.sol";
 import "./interfaces/ISettingsRegistry.sol";
 import "./SettingIds.sol";
 import "./DSAuth.sol";
+import "./interfaces/IApostleBase.sol";
 
 contract TokenUse is DSAuth, ITokenUse, SettingIds {
     using SafeMath for *;
@@ -58,6 +59,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         registry = ISettingsRegistry(_registry);
     }
 
+    // false if it is not in useStage
     function isObjectInUseStage(uint256 _tokenId) public view returns (bool) {
         if (tokenId2UseStatus[_tokenId].user == address(0)) {
             return false;
@@ -65,6 +67,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         
         return tokenId2UseStatus[_tokenId].startTime <= now && now <= tokenId2UseStatus[_tokenId].endTime;
     }
+
 
     function getTokenOwner(uint256 _tokenId) public view returns (address) {
         return tokenId2UseStatus[_tokenId].owner;
@@ -76,6 +79,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, uint256 _fee) public {
         require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
+        require(IApostleBase(registry.addressOf(CONTRACT_MINER)).isReadyToBreed(_tokenId), "it is having baby. wait.");
 
         if(_fee > 0) {
             require(ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(msg.sender, address(this), uint256(_fee)));
@@ -198,7 +202,9 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         // when in activity, only user can stop
         if(isObjectInUseStage(_tokenId)) {
             // TODO: Or require penalty
-            require(tokenId2UseStatus[_tokenId].user == msg.sender);
+            // anyone can send transaction to trigger this function
+            // only if its employment is expired
+            require(tokenId2UseStatus[_tokenId].endTime > 0 && now >= tokenId2UseStatus[_tokenId].endTime);
         }
 
         if(tokenId2UseStatus[_tokenId].fee > 0) {
