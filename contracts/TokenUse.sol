@@ -98,10 +98,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(msg.sender, address(this), _tokenId);
-        // already approve that msg.sebder == ownerOf(_tokenId)
+        // already approve that msg.sender == ownerOf(_tokenId)
         _createTokenUseOffer(_tokenId, _duration, _price, _acceptedActivity, msg.sender);
     }
 
+    // TODO: be careful with unit of duration and price
+    // remember to deal with unit off chain
     function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
         require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
         require(IApostleBase(registry.addressOf(CONTRACT_MINER)).isReadyToBreed(_tokenId), "it is having baby. wait.");
@@ -141,6 +143,14 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         });
 
         delete tokenId2UseOffer[_tokenId];
+    }
+
+    // allow batch operation for user-friendly concern
+    // recommand # of apostle <= 5 per operation
+    function tokenFallback(address _from, uint256 _value, bytes _data) public {
+        assembly {
+
+        }
     }
 
     // start activity when token has no user at all
