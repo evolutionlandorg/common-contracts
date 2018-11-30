@@ -8,7 +8,6 @@ import "./interfaces/IActivity.sol";
 import "./interfaces/ISettingsRegistry.sol";
 import "./SettingIds.sol";
 import "./DSAuth.sol";
-import "./interfaces/IApostleBase.sol";
 
 contract TokenUse is DSAuth, ITokenUse, SettingIds {
     using SafeMath for *;
@@ -104,7 +103,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
         require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
-        require(IApostleBase(registry.addressOf(CONTRACT_MINER)).isReadyToBreed(_tokenId), "it is having baby. wait.");
 
         tokenId2UseOffer[_tokenId] = UseOffer({
             owner: msg.sender,
