@@ -24,7 +24,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint256 price;  // RING per second.
         address acceptedActivity;   // can only be used in this activity.
         address workingActivity;    // 0 means no working activity currently
-        uint96 fee; // for robot get incentives for removing token use.
     }
 
     struct UseOffer {
@@ -32,7 +31,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint48 duration;
         uint256 price;
         address acceptedActivity;   // If 0, then accept any activity
-        uint96 fee;
     }
 
     bool private singletonLock = false;
@@ -77,35 +75,49 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         return tokenId2UseStatus[_tokenId].user;
     }
 
-    function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, uint256 _fee) public {
-        require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
-        require(IApostleBase(registry.addressOf(CONTRACT_MINER)).isReadyToBreed(_tokenId), "it is having baby. wait.");
+    function receiveApproval(address _from, uint _tokenId, bytes _data) public {
+        if(msg.sender == registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)) {
+            uint256 duration;
+            uint256 price;
+            address acceptedActivity;
+            assembly {
+                let ptr := mload(0x40)
+                calldatacopy(ptr, 0, calldatasize)
+                duration := mload(add(ptr, 132))
+                price := mload(add(ptr, 164))
+                acceptedActivity := mload(add(ptr, 196))
+            }
 
-        if(_fee > 0) {
-            require(ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(msg.sender, address(this), uint256(_fee)));
+            // already approve that msg.sebder == ownerOf(_tokenId)
+
+            _createTokenUseOffer(_tokenId, duration, price, acceptedActivity, _from);
         }
+    }
+
+
+    function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(msg.sender, address(this), _tokenId);
+        // already approve that msg.sebder == ownerOf(_tokenId)
+        _createTokenUseOffer(_tokenId, _duration, _price, _acceptedActivity, msg.sender);
+    }
+
+    function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
+        require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
+        require(IApostleBase(registry.addressOf(CONTRACT_MINER)).isReadyToBreed(_tokenId), "it is having baby. wait.");
 
         tokenId2UseOffer[_tokenId] = UseOffer({
             owner: msg.sender,
             duration: uint48(_duration),
             price : _price,
-            acceptedActivity: _acceptedActivity,
-            fee: uint96(_fee)
-        });
+            acceptedActivity: _acceptedActivity
+            });
     }
 
     function cancelTokenUseOffer(uint256 _tokenId) public {
         require(tokenId2UseOffer[_tokenId].owner == msg.sender, "Only token owner can cancel the offer.");
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(address(this), msg.sender, _tokenId);
-
-        if(tokenId2UseOffer[_tokenId].fee > 0) {
-            require(
-                ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(
-                address(this), msg.sender, uint256(tokenId2UseOffer[_tokenId].fee)), "Fee refund failed.");
-        }
 
         delete tokenId2UseOffer[_tokenId];
     }
@@ -125,13 +137,13 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             endTime : uint48(now) + tokenId2UseOffer[_tokenId].duration,
             price : tokenId2UseOffer[_tokenId].price,
             acceptedActivity : tokenId2UseOffer[_tokenId].acceptedActivity,
-            workingActivity: address(0),
-            fee: tokenId2UseOffer[_tokenId].fee
+            workingActivity: address(0)
         });
 
         delete tokenId2UseOffer[_tokenId];
     }
 
+    // start activity when token has no user at all
     function startTokenUseFromActivity(
         uint256 _tokenId, address _user, address _owner, uint256 _startTime, uint256 _endTime, uint256 _price
     ) public auth {
@@ -149,8 +161,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             endTime : uint48(_endTime),
             price : _price,
             acceptedActivity : msg.sender,
-            workingActivity: msg.sender,
-            fee: 0
+            workingActivity: msg.sender
         });
     }
 
@@ -179,8 +190,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
                 endTime : uint48(_endTime),
                 price : _price,
                 acceptedActivity : msg.sender,
-                workingActivity: msg.sender,
-                fee: 0
+                workingActivity: msg.sender
             });
         }
     }
@@ -205,10 +215,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             // anyone can send transaction to trigger this function
             // only if its employment is expired
             require(tokenId2UseStatus[_tokenId].endTime > 0 && now >= tokenId2UseStatus[_tokenId].endTime);
-        }
-
-        if(tokenId2UseStatus[_tokenId].fee > 0) {
-            require(ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transfer(msg.sender, uint256(tokenId2UseStatus[_tokenId].fee)));
         }
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(address(this), tokenId2UseStatus[_tokenId].owner, _tokenId);
