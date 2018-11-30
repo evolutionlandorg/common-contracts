@@ -16,7 +16,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     event ClaimedTokens(address indexed token, address indexed owner, uint amount);
 
     struct UseStatus {
-        uint256 tokenId;
         address user;
         uint48  startTime;
         uint48  endTime;
@@ -25,7 +24,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     struct UseOffer {
-        uint256 tokenId;
         uint48 duration;
         uint256 price;
         address acceptedActivity;   // If 0, then accept any activity
@@ -99,12 +97,11 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
-        require(tokenId2UseStatus[_tokenId].tokenId == 0, "Token already in another use.");
-        require(tokenId2UseOffer[_tokenId].tokenId == 0, "Token already in another offer.");
+        require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
+        require(tokenId2UseOffer[_tokenId].duration == 0, "Token already in another offer.");
         require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
 
         tokenId2UseOffer[_tokenId] = UseOffer({
-            tokenId: _tokenId,
             duration: uint48(_duration),
             price : _price,
             acceptedActivity: _acceptedActivity
@@ -121,7 +118,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     function takeTokenUseOffer(uint256 _tokenId) public {
         // calculate the required expense to hire this token.
-        require(tokenId2UseOffer[_tokenId].tokenId != 0, "Offer does not exist for this token.");
+        require(tokenId2UseOffer[_tokenId].duration != 0, "Offer does not exist for this token.");
         require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
 
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].duration).mul(tokenId2UseOffer[_tokenId].price);
@@ -130,7 +127,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             msg.sender, ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), expense);
 
         tokenId2UseStatus[_tokenId] = UseStatus({
-            tokenId: _tokenId,
             user: msg.sender,
             startTime: uint48(now),
             endTime : uint48(now) + tokenId2UseOffer[_tokenId].duration,
@@ -147,9 +143,9 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     ) public auth {
         require(IActivity(msg.sender).isActivity(), "Msg sender must be activity");
 
-        require(tokenId2UseOffer[_tokenId].tokenId == 0, "Can not start activity when offering.");
+        require(tokenId2UseOffer[_tokenId].duration == 0, "Can not start activity when offering.");
 
-        if(tokenId2UseStatus[_tokenId].tokenId != 0) {
+        if(tokenId2UseStatus[_tokenId].user != address(0)) {
             require(_user == tokenId2UseStatus[_tokenId].user, "User is not correct.");
             require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
             require(
@@ -166,7 +162,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function stopActivity(uint256 _tokenId, address _user) public auth {
         require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
 
-        if(tokenId2UseStatus[_tokenId].tokenId != 0) {
+        if(tokenId2UseStatus[_tokenId].user != address(0)) {
             if (_user == tokenId2UseStatus[_tokenId].user) {
                 delete currentTokenActivities[_tokenId];
             } else {
@@ -194,7 +190,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function removeTokenUse(uint256 _tokenId) public {
-        require(tokenId2UseStatus[_tokenId].tokenId != 0, "Object does not exist.");
+        require(tokenId2UseStatus[_tokenId].user != address(0), "Object does not exist.");
 
         // when in activity, only user can stop
         if(isObjectInUseStage(_tokenId)) {
