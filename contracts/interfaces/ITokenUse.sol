@@ -1,6 +1,8 @@
 pragma solidity ^0.4.24;
 
 contract ITokenUse {
+    uint48 public constant MAX_UINT48_TIME = 281474976710655;
+
     function isObjectInUseStage(uint256 _tokenId) public view returns (bool);
 
     function getTokenUser(uint256 _tokenId) public view returns (address);
@@ -11,13 +13,9 @@ contract ITokenUse {
 
     function takeTokenUseOffer(uint256 _tokenId) public;
 
-    function createTokenUseFromActivity(
-        uint256 _tokenId, address _user, address _owner, uint256 _startTime, uint256 _endTime, uint256 _price) public;
+    function startActivity(uint256 _tokenId, address _user) public;
 
-    function batchCreateTokenUseFromActivity(
-        uint256[] _tokenIds, address _user, address _owner, uint256 _startTime, uint256 _endTime, uint256 _price) public;
-
-    function stopTokenUseFromActivity(uint256 _tokenId) public;
+    function stopActivity(uint256 _tokenId) public;
 
     function removeTokenUse(uint256 _tokenId) public;
 }

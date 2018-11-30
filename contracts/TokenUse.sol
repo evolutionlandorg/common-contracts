@@ -22,7 +22,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint48  endTime;
         uint256 price;  // RING per second.
         address acceptedActivity;   // can only be used in this activity.
-        address workingActivity;    // 0 means no working activity currently
     }
 
     struct UseOffer {
@@ -35,6 +34,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     bool private singletonLock = false;
 
     ISettingsRegistry public registry;
+
+    mapping (uint256 => address) currentTokenActivities;
 
     mapping (uint256 => UseStatus) public tokenId2UseStatus;
 
@@ -69,53 +70,59 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         return tokenId2UseStatus[_tokenId].user;
     }
 
-    // function receiveApproval(address _from, uint _tokenId, bytes _data) public {
-    //     if(msg.sender == registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)) {
-    //         uint256 duration;
-    //         uint256 price;
-    //         address acceptedActivity;
-    //         assembly {
-    //             let ptr := mload(0x40)
-    //             calldatacopy(ptr, 0, calldatasize)
-    //             duration := mload(add(ptr, 132))
-    //             price := mload(add(ptr, 164))
-    //             acceptedActivity := mload(add(ptr, 196))
-    //         }
+    function receiveApproval(address _from, uint _tokenId, bytes _data) public {
+        if(msg.sender == registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)) {
+            uint256 duration;
+            uint256 price;
+            address acceptedActivity;
+            assembly {
+                let ptr := mload(0x40)
+                calldatacopy(ptr, 0, calldatasize)
+                duration := mload(add(ptr, 132))
+                price := mload(add(ptr, 164))
+                acceptedActivity := mload(add(ptr, 196))
+            }
 
-    //         // already approve that msg.sebder == ownerOf(_tokenId)
+            // already approve that msg.sebder == ownerOf(_tokenId)
 
-    //         _createTokenUseOffer(_tokenId, duration, price, acceptedActivity, _from);
-    //     }
-    // }
+            _createTokenUseOffer(_tokenId, duration, price, acceptedActivity, _from);
+        }
+    }
 
 
     function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
         require(ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == msg.sender, "Only can call by the token owner.");
-        
+
+        ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(msg.sender, address(this), _tokenId);
+
         _createTokenUseOffer(_tokenId, _duration, _price, _acceptedActivity, msg.sender);
     }
 
     function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
-        require(tokenId2UseStatus[_tokenId].tokenId == address(0), "Token already in another use.");
-        require(tokenId2UseOffer[_tokenId].tokenId == address(0), "Token already in another offer.");
+        require(tokenId2UseStatus[_tokenId].tokenId == 0, "Token already in another use.");
+        require(tokenId2UseOffer[_tokenId].tokenId == 0, "Token already in another offer.");
+        require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
 
         tokenId2UseOffer[_tokenId] = UseOffer({
             tokenId: _tokenId,
             duration: uint48(_duration),
             price : _price,
             acceptedActivity: _acceptedActivity
-            });
+        });
     }
 
     function cancelTokenUseOffer(uint256 _tokenId) public {
         require(ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == msg.sender, "Only token owner can cancel the offer.");
+
+        ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(address(this), msg.sender,  _tokenId);
 
         delete tokenId2UseOffer[_tokenId];
     }
 
     function takeTokenUseOffer(uint256 _tokenId) public {
         // calculate the required expense to hire this token.
-        require(tokenId2UseOffer[_tokenId].tokenId != address(0), "Offer does not exist for this token.");
+        require(tokenId2UseOffer[_tokenId].tokenId != 0, "Offer does not exist for this token.");
+        require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
 
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].duration).mul(tokenId2UseOffer[_tokenId].price);
 
@@ -128,80 +135,80 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             startTime: uint48(now),
             endTime : uint48(now) + tokenId2UseOffer[_tokenId].duration,
             price : tokenId2UseOffer[_tokenId].price,
-            acceptedActivity : tokenId2UseOffer[_tokenId].acceptedActivity,
-            workingActivity: address(0)
+            acceptedActivity : tokenId2UseOffer[_tokenId].acceptedActivity
         });
 
         delete tokenId2UseOffer[_tokenId];
     }
 
     // start activity when token has no user at all
-    function createTokenUseFromActivity(
-        uint256 _tokenId, address _user, uint256 _startTime, uint256 _endTime, uint256 _price
+    function startActivity(
+        uint256 _tokenId, address _user
     ) public auth {
-        require(ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "User must be the owner.");
-        require(tokenId2UseStatus[_tokenId].tokenId == 0, "Token already in another use.");
-        require(_user != address(0), "User can not be zero.");
         require(IActivity(msg.sender).isActivity(), "Msg sender must be activity");
 
-        tokenId2UseStatus[_tokenId] = UseStatus({
-            tokenId: _tokenId,
-            user: _user,
-            startTime: uint48(_startTime),
-            endTime : uint48(_endTime),
-            price : _price,
-            acceptedActivity : msg.sender,
-            workingActivity: msg.sender
-        });
-    }
+        require(tokenId2UseOffer[_tokenId].tokenId == 0, "Can not start activity when offering.");
 
-    // for all erc721 tokens, both owned by msg.sender, or hired.
-    // @param _owner - in real-life use case, _owner == _user or _owner == this
-    //                  so there is no need to use address[] _owners for now
-    function batchCreateTokenUseFromActivity(
-        uint256[] _tokenIds, address _user, uint256 _startTime, uint256 _endTime, uint256 _price
-    ) public auth {
-        require(_user != address(0), "User can not be zero.");
-        require(IActivity(msg.sender).isActivity(), "Msg sender must be activity");
-
-        ERC721 nft = ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP));
-
-        uint length = _tokenIds.length;
-        for(uint i = 0; i < length; i++) {
-            require(tokenId2UseStatus[_tokenIds[i]].tokenId == 0, "Token already in another use.");
-
-            nft.transferFrom(_owner, address(this), _tokenIds[i]);
-
-            tokenId2UseStatus[_tokenIds[i]] = UseStatus({
-                tokenId: _tokenIds[i],
-                owner: _owner,
-                startTime: uint48(_startTime),
-                endTime : uint48(_endTime),
-                price : _price,
-                acceptedActivity : msg.sender,
-                workingActivity: msg.sender
-            });
+        if(tokenId2UseStatus[_tokenId].tokenId != 0) {
+            require(_user == tokenId2UseStatus[_tokenId].user, "User is not correct.");
+            require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
+            require(
+                tokenId2UseStatus[_tokenId].acceptedActivity == address(0) || 
+                tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
+            currentTokenActivities[_tokenId] = msg.sender;
+        } else {
+            require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
+            
+            currentTokenActivities[_tokenId] = msg.sender;
         }
     }
 
-    // TODO: startTokenActivity for those are not in use yet. One Object can not be used twice. TODO: check the time.
-    function stopTokenUseFromActivity(uint256 _tokenId) public auth {
-        require(
-            tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender || tokenId2UseStatus[_tokenId].acceptedActivity == address(0), "Msg sender must be the activity");
-        require(tokenId2UseStatus[_tokenId].workingActivity == msg.sender, "Token already in another activity.");
+    function stopActivity(uint256 _tokenId, address _user) public auth {
+        require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
 
-        tokenId2UseStatus[_tokenId].workingActivity = address(0);
+        if(tokenId2UseStatus[_tokenId].tokenId != 0) {
+            if (_user == tokenId2UseStatus[_tokenId].user) {
+                delete currentTokenActivities[_tokenId];
+            } else {
+                require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
+                require(!isObjectInUseStage(_tokenId));
+
+                _removeTokenUse(_tokenId);
+                delete currentTokenActivities[_tokenId];
+            }
+        } else {
+            require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
+            
+            delete currentTokenActivities[_tokenId];
+        }
+
+
+        // only user can stop mining directly.
+        require(tokenId2UseStatus[_tokenId].user == _user, "Only token owner can stop the activity.");
+
+        if (_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId)) {
+            delete tokenId2UseStatus[_tokenId];
+        } else {
+            currentTokenActivities[_tokenId] = address(0);
+        }
     }
 
     function removeTokenUse(uint256 _tokenId) public {
-        require(tokenId2UseStatus[_tokenId].tokenId != address(0), "Object does not exist.");
+        require(tokenId2UseStatus[_tokenId].tokenId != 0, "Object does not exist.");
 
         // when in activity, only user can stop
         if(isObjectInUseStage(_tokenId)) {
             require(tokenId2UseStatus[_tokenId].user == msg.sender);
         }
 
+        _removeTokenUse(_tokenId);
+    }
+
+    function _removeTokenUse(uint256 _tokenId) public {
         IActivity(tokenId2UseStatus[_tokenId].acceptedActivity).tokenUseStopped(_tokenId);
+
+        ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(
+            address(this), ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId),  _tokenId);
 
         delete tokenId2UseStatus[_tokenId];
     }
