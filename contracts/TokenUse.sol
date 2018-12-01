@@ -179,7 +179,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             if (_user == tokenId2UseStatus[_tokenId].user) {
                 delete currentTokenActivities[_tokenId];
             } else {
-                require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
+                require(_user == tokenId2UseStatus[_tokenId].owner, "User is required to be owner.");
                 require(!isObjectInUseStage(_tokenId));
 
                 _removeTokenUse(_tokenId);
