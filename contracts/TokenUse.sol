@@ -17,6 +17,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     struct UseStatus {
         address user;
+        address owner;
         uint48  startTime;
         uint48  endTime;
         uint256 price;  // RING per second.
@@ -132,6 +133,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
         tokenId2UseStatus[_tokenId] = UseStatus({
             user: msg.sender,
+            owner: tokenId2UseOffer[_tokenId].owner,
             startTime: uint48(now),
             endTime : uint48(now) + tokenId2UseOffer[_tokenId].duration,
             price : tokenId2UseOffer[_tokenId].price,
@@ -161,7 +163,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             require(_user == tokenId2UseStatus[_tokenId].user, "User is not correct.");
             require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
             require(
-                tokenId2UseStatus[_tokenId].acceptedActivity == address(0), "Token accepted activity is not accepted.");
+                tokenId2UseStatus[_tokenId].acceptedActivity == address(0) || tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
             currentTokenActivities[_tokenId] = msg.sender;
         } else {
             require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
@@ -215,7 +217,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         IActivity(tokenId2UseStatus[_tokenId].acceptedActivity).tokenUseStopped(_tokenId);
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(
-            address(this), ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId),  _tokenId);
+            address(this), tokenId2UseStatus[_tokenId].owner,  _tokenId);
 
         delete tokenId2UseStatus[_tokenId];
     }
