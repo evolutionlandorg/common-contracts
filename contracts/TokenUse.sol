@@ -24,6 +24,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     struct UseOffer {
+        address owner;
         uint48 duration;
         uint256 price;
         address acceptedActivity;   // If 0, then accept any activity
@@ -96,12 +97,15 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         _createTokenUseOffer(_tokenId, _duration, _price, _acceptedActivity, msg.sender);
     }
 
+    // TODO: be careful with unit of duration and price
+    // remember to deal with unit off chain
     function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
         require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
         require(tokenId2UseOffer[_tokenId].duration == 0, "Token already in another offer.");
         require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
 
         tokenId2UseOffer[_tokenId] = UseOffer({
+            owner: _owner,
             duration: uint48(_duration),
             price : _price,
             acceptedActivity: _acceptedActivity
@@ -124,7 +128,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].duration).mul(tokenId2UseOffer[_tokenId].price);
 
         ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(
-            msg.sender, ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), expense);
+            msg.sender, tokenId2UseOffer[_tokenId].owner, expense);
 
         tokenId2UseStatus[_tokenId] = UseStatus({
             user: msg.sender,
@@ -135,6 +139,14 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         });
 
         delete tokenId2UseOffer[_tokenId];
+    }
+
+    // allow batch operation for user-friendly concern
+    // recommand # of apostle <= 5 per operation
+    function tokenFallback(address _from, uint256 _value, bytes _data) public {
+        assembly {
+
+        }
     }
 
     // start activity when token has no user at all
@@ -149,8 +161,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             require(_user == tokenId2UseStatus[_tokenId].user, "User is not correct.");
             require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
             require(
-                tokenId2UseStatus[_tokenId].acceptedActivity == address(0) || 
-                tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
+                tokenId2UseStatus[_tokenId].acceptedActivity == address(0), "Token accepted activity is not accepted.");
             currentTokenActivities[_tokenId] = msg.sender;
         } else {
             require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
