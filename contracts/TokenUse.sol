@@ -73,6 +73,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         return !isObjectInUseStage(_tokenId) && currentTokenActivities[_tokenId] == address(0);
     }
 
+
     function getTokenUser(uint256 _tokenId) public view returns (address) {
         return tokenId2UseStatus[_tokenId].user;
     }
