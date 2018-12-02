@@ -67,6 +67,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         return tokenId2UseStatus[_tokenId].startTime <= now && now <= tokenId2UseStatus[_tokenId].endTime;
     }
 
+    // by check this function
+    // you can know if an nft is ok to startActivity
+    function isObjectReadyToUse(uint256 _tokenId) public view returns (bool) {
+        return !isObjectInUseStage(_tokenId) && currentTokenActivities[_tokenId] == address(0);
+    }
+
     function getTokenUser(uint256 _tokenId) public view returns (address) {
         return tokenId2UseStatus[_tokenId].user;
     }
