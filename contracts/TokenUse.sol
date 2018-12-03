@@ -258,6 +258,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             address(this), tokenId2UseStatus[_tokenId].owner,  _tokenId);
 
         delete tokenId2UseStatus[_tokenId];
+        delete currentTokenActivities[_tokenId];
     }
 
     // for user-friendly
