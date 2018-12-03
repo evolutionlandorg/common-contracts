@@ -194,6 +194,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function startActivity(
         uint256 _tokenId, address _user
     ) public auth {
+        require(tokenId2UseStatus[_tokenId].user == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
         require(IActivity(msg.sender).isActivity(), "Msg sender must be activity");
         require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
 
@@ -230,6 +231,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         _removeTokenUse(_tokenId);
     }
 
+
     function _removeTokenUse(uint256 _tokenId) public {
         if (currentTokenActivities[_tokenId] != address(0)) {
             IActivity(currentTokenActivities[_tokenId]).tokenUseStopped(_tokenId);
@@ -239,6 +241,21 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             address(this), tokenId2UseStatus[_tokenId].owner,  _tokenId);
 
         delete tokenId2UseStatus[_tokenId];
+    }
+
+    // for user-friendly
+    function removeUseAndcreateOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
+        require(tokenId2UseStatus[_tokenId].owner == msg.sender);
+
+        removeTokenUse(_tokenId);
+
+        tokenId2UseOffer[_tokenId] = UseOffer({
+            owner: msg.sender,
+            duration: uint48(_duration),
+            price : _price,
+            acceptedActivity: _acceptedActivity
+            });
+
     }
 
     /// @notice This method can be used by the owner to extract mistakenly
