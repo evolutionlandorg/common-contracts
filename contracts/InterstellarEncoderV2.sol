@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./interfaces/IInterstellarEncoder.sol";
 
+// TODO: upgrade.
 contract InterstellarEncoderV2 is IInterstellarEncoder, Ownable {
     // [magic_number, chain_id, contract_id <2>, origin_chain_id, origin_contract_id<2>, object_class, convert_type, <6>, land, <128>]
     mapping(uint16 => address) public contractId2Address;
@@ -11,6 +12,9 @@ contract InterstellarEncoderV2 is IInterstellarEncoder, Ownable {
     mapping(address => uint8) public objectContract2ObjectClass;
 
     uint16 public lastContractId = 0;
+
+    // extended since V2
+    mapping(uint8 => address) public objectClass2ObjectContract;
 
     function encodeTokenId(address _tokenAddress, uint8 _objectClass, uint128 _objectId) public view returns (uint256 _tokenId) {
         uint16 contractId = contractAddress2Id[_tokenAddress];
@@ -37,8 +41,9 @@ contract InterstellarEncoderV2 is IInterstellarEncoder, Ownable {
         contractId2Address[lastContractId] = _tokenAddress;
     }
 
-    function registerNewObjectClass(address _objectContract, uint8 objectClass) public onlyOwner {
-        objectContract2ObjectClass[_objectContract] = objectClass;
+    function registerNewObjectClass(address _objectContract, uint8 _objectClass) public onlyOwner {
+        objectContract2ObjectClass[_objectContract] = _objectClass;
+        objectClass2ObjectContract[_objectClass] = _objectContract;
     }
 
     function getContractAddress(uint256 _tokenId) public view returns (address) {
@@ -51,5 +56,9 @@ contract InterstellarEncoderV2 is IInterstellarEncoder, Ownable {
 
     function getObjectClass(uint256 _tokenId) public view returns (uint8) {
         return uint8((_tokenId << 56) >> 248);
+    }
+
+    function getObjectAddress(uint256 _tokenId) public view returns (address) {
+        return objectClass2ObjectContract[uint8((_tokenId << 56) >> 248)];
     }
 }
