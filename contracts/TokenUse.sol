@@ -27,6 +27,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     struct UseOffer {
         address owner;
         uint48 duration;
+        // total price of hiring mft for full duration
         uint256 price;
         address acceptedActivity;   // If 0, then accept any activity
     }
@@ -66,6 +67,13 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         return tokenId2UseStatus[_tokenId].startTime <= now && now <= tokenId2UseStatus[_tokenId].endTime;
     }
 
+    // by check this function
+    // you can know if an nft is ok to startActivity
+    function isObjectReadyToUse(uint256 _tokenId) public view returns (bool) {
+        return !isObjectInUseStage(_tokenId) && currentTokenActivities[_tokenId] == address(0);
+    }
+
+
     function getTokenUser(uint256 _tokenId) public view returns (address) {
         return tokenId2UseStatus[_tokenId].user;
     }
@@ -83,17 +91,16 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
                 acceptedActivity := mload(add(ptr, 196))
             }
 
-            // already approve that msg.sebder == ownerOf(_tokenId)
+            // already approve that msg.sender == ownerOf(_tokenId)
 
             _createTokenUseOffer(_tokenId, duration, price, acceptedActivity, _from);
         }
     }
 
 
+    // need approval from msg.sender
     function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
         require(ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == msg.sender, "Only can call by the token owner.");
-
-        ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(msg.sender, address(this), _tokenId);
 
         _createTokenUseOffer(_tokenId, _duration, _price, _acceptedActivity, msg.sender);
     }
@@ -104,6 +111,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
         require(tokenId2UseOffer[_tokenId].duration == 0, "Token already in another offer.");
         require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
+
+        ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(msg.sender, address(this), _tokenId);
 
         tokenId2UseOffer[_tokenId] = UseOffer({
             owner: _owner,
@@ -122,33 +131,49 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function takeTokenUseOffer(uint256 _tokenId) public {
-        // calculate the required expense to hire this token.
-        require(tokenId2UseOffer[_tokenId].duration != 0, "Offer does not exist for this token.");
-        require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
-
-        uint256 expense = uint256(tokenId2UseOffer[_tokenId].duration).mul(tokenId2UseOffer[_tokenId].price);
+        uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
 
         ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(
             msg.sender, tokenId2UseOffer[_tokenId].owner, expense);
 
+        _takeTokenUseOffer(_tokenId, expense, msg.sender);
+    }
+
+    function _takeTokenUseOffer(uint256 _tokenId, uint _value, address _from) internal {
+
+        uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
+        require(_value >= expense);
+
+        require(tokenId2UseOffer[_tokenId].duration != 0, "Offer does not exist for this token.");
+        require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
+
         tokenId2UseStatus[_tokenId] = UseStatus({
-            user: msg.sender,
+            user: _from,
             owner: tokenId2UseOffer[_tokenId].owner,
             startTime: uint48(now),
             endTime : uint48(now) + tokenId2UseOffer[_tokenId].duration,
             price : tokenId2UseOffer[_tokenId].price,
             acceptedActivity : tokenId2UseOffer[_tokenId].acceptedActivity
-        });
+            });
 
         delete tokenId2UseOffer[_tokenId];
+
     }
 
     // allow batch operation for user-friendly concern
     // recommand # of apostle <= 5 per operation
+    //TODO: allow batch operation
     function tokenFallback(address _from, uint256 _value, bytes _data) public {
-        assembly {
+        uint256 tokenId;
 
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(ptr, 0, calldatasize)
+            tokenId := mload(add(ptr, 132))
         }
+
+        _takeTokenUseOffer(tokenId, _value, _from);
+
     }
 
     // start activity when token has no user at all
