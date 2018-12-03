@@ -194,7 +194,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function startActivity(
         uint256 _tokenId, address _user
     ) public auth {
-        require(tokenId2UseStatus[_tokenId].user == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
+        require(tokenId2UseStatus[_tokenId].user == _user || address(0) == _user, "you can not use this token.");
 
         require(IActivity(msg.sender).supportsInterface(0x8fc0f454), "Msg sender must be activity");
 
@@ -213,6 +213,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function stopActivity(uint256 _tokenId, address _user) public auth {
+        require(tokenId2UseStatus[_tokenId].user == _user || address(0) == _user, "you can not use this token.");
         require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
 
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
