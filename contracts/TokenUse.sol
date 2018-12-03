@@ -270,7 +270,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             IActivity(currentTokenActivities[_tokenId]).tokenUseStopped(_tokenId);
         }
 
-        delete tokenId2UseStatus[_tokenId];
 
         tokenId2UseOffer[_tokenId] = UseOffer({
             owner: msg.sender,
