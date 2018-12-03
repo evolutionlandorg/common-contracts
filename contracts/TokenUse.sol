@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import "./interfaces/ERC223.sol";
 import "./interfaces/ITokenUse.sol";
 import "./interfaces/IActivity.sol";
 import "./interfaces/ISettingsRegistry.sol";
@@ -133,18 +134,21 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function takeTokenUseOffer(uint256 _tokenId) public {
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
 
-        ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(
-            msg.sender, tokenId2UseOffer[_tokenId].owner, expense);
+        uint256 cut = expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
 
-        _takeTokenUseOffer(_tokenId, expense, msg.sender);
+        address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
+
+        ERC20(ring).transferFrom(
+            msg.sender, tokenId2UseOffer[_tokenId].owner, expense.sub(cut));
+
+        ERC223(ring).transferFrom(
+            msg.sender, registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(msg.sender));
+
+        _takeTokenUseOffer(_tokenId, msg.sender);
     }
 
-    function _takeTokenUseOffer(uint256 _tokenId, uint _value, address _from) internal {
-
-        uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
-        require(_value >= expense);
-
-        require(tokenId2UseOffer[_tokenId].duration != 0, "Offer does not exist for this token.");
+    function _takeTokenUseOffer(uint256 _tokenId, address _from) internal {
+        require(tokenId2UseOffer[_tokenId].owner != address(0), "Offer does not exist for this token.");
         require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
 
         tokenId2UseStatus[_tokenId] = UseStatus({
@@ -160,21 +164,30 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     }
 
-
-    // allow batch operation for user-friendly concern
-    // recommand # of apostle <= 5 per operation
     //TODO: allow batch operation
     function tokenFallback(address _from, uint256 _value, bytes _data) public {
-        uint256 tokenId;
+        address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
+        if(ring == msg.sender) {
+            uint256 tokenId;
 
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(ptr, 0, calldatasize)
-            tokenId := mload(add(ptr, 132))
+            assembly {
+                let ptr := mload(0x40)
+                calldatacopy(ptr, 0, calldatasize)
+                tokenId := mload(add(ptr, 132))
+            }
+
+            uint256 expense = uint256(tokenId2UseOffer[tokenId].price);
+            require(_value >= expense);
+
+            uint256 cut = expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
+
+            ERC20(ring).transfer(tokenId2UseOffer[tokenId].owner, expense.sub(cut));
+
+            ERC223(ring).transfer(
+                registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(msg.sender));
+
+            _takeTokenUseOffer(tokenId, _from);
         }
-
-        _takeTokenUseOffer(tokenId, _value, _from);
-
     }
 
     // start activity when token has no user at all
@@ -182,50 +195,28 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint256 _tokenId, address _user
     ) public auth {
         require(IActivity(msg.sender).isActivity(), "Msg sender must be activity");
+        require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
 
         require(tokenId2UseOffer[_tokenId].duration == 0, "Can not start activity when offering.");
 
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
             require(_user == tokenId2UseStatus[_tokenId].user, "User is not correct.");
-            require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
             require(
                 tokenId2UseStatus[_tokenId].acceptedActivity == address(0) || tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
-            currentTokenActivities[_tokenId] = msg.sender;
-        } else {
-            require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
             
-            currentTokenActivities[_tokenId] = msg.sender;
         }
+
+        currentTokenActivities[_tokenId] = msg.sender;
     }
 
     function stopActivity(uint256 _tokenId, address _user) public auth {
         require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
 
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
-            if (_user == tokenId2UseStatus[_tokenId].user) {
-                delete currentTokenActivities[_tokenId];
-            } else {
-                require(_user == tokenId2UseStatus[_tokenId].owner, "User is required to be owner.");
-                require(!isObjectInUseStage(_tokenId));
-
-                _removeTokenUse(_tokenId);
-                delete currentTokenActivities[_tokenId];
-            }
-        } else {
-            require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
-            
-            delete currentTokenActivities[_tokenId];
+            require(_user == tokenId2UseStatus[_tokenId].user);
         }
 
-
-        // only user can stop mining directly.
-        require(tokenId2UseStatus[_tokenId].user == _user, "Only token owner can stop the activity.");
-
-        if (_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId)) {
-            delete tokenId2UseStatus[_tokenId];
-        } else {
-            currentTokenActivities[_tokenId] = address(0);
-        }
+        delete currentTokenActivities[_tokenId];
     }
 
     function removeTokenUse(uint256 _tokenId) public {
@@ -239,8 +230,11 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         _removeTokenUse(_tokenId);
     }
 
-    function _removeTokenUse(uint256 _tokenId) internal {
-        IActivity(tokenId2UseStatus[_tokenId].acceptedActivity).tokenUseStopped(_tokenId);
+
+    function _removeTokenUse(uint256 _tokenId) public {
+        if (currentTokenActivities[_tokenId] != address(0)) {
+            IActivity(currentTokenActivities[_tokenId]).tokenUseStopped(_tokenId);
+        }
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(
             address(this), tokenId2UseStatus[_tokenId].owner,  _tokenId);
@@ -277,5 +271,10 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         token.transfer(owner, balance);
 
         emit ClaimedTokens(_token, owner, balance);
+    }
+
+    function toBytes(address x) public pure returns (bytes b) {
+        b = new bytes(32);
+        assembly { mstore(add(b, 32), x) }
     }
 }
