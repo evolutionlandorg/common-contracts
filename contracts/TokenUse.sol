@@ -244,7 +244,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     // for user-friendly
-    function removeUseAndcreateOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
+    function removeUseAndCreateOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
         require(tokenId2UseStatus[_tokenId].owner == msg.sender);
 
         removeTokenUse(_tokenId);
