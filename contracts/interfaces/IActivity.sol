@@ -1,7 +1,13 @@
 pragma solidity ^0.4.24;
 
-contract IActivity {
-    function tokenUseStopped(uint256 _tokenId) public;
+import "openzeppelin-solidity/contracts/introspection/ERC165.sol";
 
-    function isActivity() public returns (bool);
+contract IActivity is ERC165 {
+    bytes4 internal constant InterfaceId_IActivity = 0x8fc0f454; 
+    /*
+     * 0x8fc0f454 ===
+     *   bytes4(keccak256('tokenUseStopped(uint256)'))
+     */
+
+    function tokenUseStopped(uint256 _tokenId) public;
 }
