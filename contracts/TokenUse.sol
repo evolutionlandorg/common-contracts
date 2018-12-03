@@ -134,23 +134,21 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function takeTokenUseOffer(uint256 _tokenId) public {
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
 
-        uint256 cut =  expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
+        uint256 cut = expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
 
-        ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(
+        address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
+
+        ERC20(ring).transferFrom(
             msg.sender, tokenId2UseOffer[_tokenId].owner, expense.sub(cut));
 
-        ERC223(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transfer(
-            registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(msg.sender));
+        ERC223(ring).transferFrom(
+            msg.sender, registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(msg.sender));
 
-        _takeTokenUseOffer(_tokenId, expense, msg.sender);
+        _takeTokenUseOffer(_tokenId, msg.sender);
     }
 
-    function _takeTokenUseOffer(uint256 _tokenId, uint _value, address _from) internal {
-
-        uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
-        require(_value >= expense);
-
-        require(tokenId2UseOffer[_tokenId].duration != 0, "Offer does not exist for this token.");
+    function _takeTokenUseOffer(uint256 _tokenId, address _from) internal {
+        require(tokenId2UseOffer[_tokenId].owner != address(0), "Offer does not exist for this token.");
         require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
 
         tokenId2UseStatus[_tokenId] = UseStatus({
@@ -166,20 +164,30 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     }
 
-    // allow batch operation for user-friendly concern
-    // recommand # of apostle <= 5 per operation
     //TODO: allow batch operation
     function tokenFallback(address _from, uint256 _value, bytes _data) public {
-        uint256 tokenId;
+        address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
+        if(ring == msg.sender) {
+            uint256 tokenId;
 
-        assembly {
-            let ptr := mload(0x40)
-            calldatacopy(ptr, 0, calldatasize)
-            tokenId := mload(add(ptr, 132))
+            assembly {
+                let ptr := mload(0x40)
+                calldatacopy(ptr, 0, calldatasize)
+                tokenId := mload(add(ptr, 132))
+            }
+
+            uint256 expense = uint256(tokenId2UseOffer[tokenId].price);
+            require(_value >= expense);
+
+            uint256 cut = expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
+
+            ERC20(ring).transfer(tokenId2UseOffer[tokenId].owner, expense.sub(cut));
+
+            ERC223(ring).transfer(
+                registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(msg.sender));
+
+            _takeTokenUseOffer(tokenId, _from);
         }
-
-        _takeTokenUseOffer(tokenId, _value, _from);
-
     }
 
     // start activity when token has no user at all
