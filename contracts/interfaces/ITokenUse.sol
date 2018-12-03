@@ -5,6 +5,8 @@ contract ITokenUse {
 
     function isObjectInUseStage(uint256 _tokenId) public view returns (bool);
 
+    function isObjectReadyToUse(uint256 _tokenId) public view returns (bool);
+
     function getTokenUser(uint256 _tokenId) public view returns (address);
 
     function createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public;
@@ -18,4 +20,6 @@ contract ITokenUse {
     function stopActivity(uint256 _tokenId, address _user) public;
 
     function removeTokenUse(uint256 _tokenId) public;
+
+    function registerTokenStatus(uint256 _tokenId) public;
 }
