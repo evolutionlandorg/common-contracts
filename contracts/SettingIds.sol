@@ -43,4 +43,11 @@ contract SettingIds {
     bytes32 public constant UINT_AUCTION_CUT = "UINT_AUCTION_CUT";  // Denominator is 10000
 
     bytes32 public constant UINT_TOKEN_OFFER_CUT = "UINT_TOKEN_OFFER_CUT";  // Denominator is 10000
+
+    // Cut referer takes on each auction, measured in basis points (1/100 of a percent).
+    // which cut from transaction fee.
+    // Values 0-10,000 map to 0%-100%
+    // set refererCut to 4%
+    // refererCut = 400;
+    bytes32 public constant UINT_REFERER_CUT = "UINT_REFERER_CUT";
 }
