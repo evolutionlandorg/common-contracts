@@ -181,50 +181,28 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint256 _tokenId, address _user
     ) public auth {
         require(IActivity(msg.sender).isActivity(), "Msg sender must be activity");
+        require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
 
         require(tokenId2UseOffer[_tokenId].duration == 0, "Can not start activity when offering.");
 
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
             require(_user == tokenId2UseStatus[_tokenId].user, "User is not correct.");
-            require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
             require(
                 tokenId2UseStatus[_tokenId].acceptedActivity == address(0) || tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
-            currentTokenActivities[_tokenId] = msg.sender;
-        } else {
-            require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
             
-            currentTokenActivities[_tokenId] = msg.sender;
         }
+
+        currentTokenActivities[_tokenId] = msg.sender;
     }
 
     function stopActivity(uint256 _tokenId, address _user) public auth {
         require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
 
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
-            if (_user == tokenId2UseStatus[_tokenId].user) {
-                delete currentTokenActivities[_tokenId];
-            } else {
-                require(_user == tokenId2UseStatus[_tokenId].owner, "User is required to be owner.");
-                require(!isObjectInUseStage(_tokenId));
-
-                _removeTokenUse(_tokenId);
-                delete currentTokenActivities[_tokenId];
-            }
-        } else {
-            require(_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId), "User is required to be owner.");
-            
-            delete currentTokenActivities[_tokenId];
+            require(_user == tokenId2UseStatus[_tokenId].user);
         }
 
-
-        // only user can stop mining directly.
-        require(tokenId2UseStatus[_tokenId].user == _user, "Only token owner can stop the activity.");
-
-        if (_user == ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId)) {
-            delete tokenId2UseStatus[_tokenId];
-        } else {
-            currentTokenActivities[_tokenId] = address(0);
-        }
+        delete currentTokenActivities[_tokenId];
     }
 
     function removeTokenUse(uint256 _tokenId) public {
@@ -239,7 +217,9 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function _removeTokenUse(uint256 _tokenId) public {
-        IActivity(tokenId2UseStatus[_tokenId].acceptedActivity).tokenUseStopped(_tokenId);
+        if (currentTokenActivities[_tokenId] != address(0)) {
+            IActivity(currentTokenActivities[_tokenId]).tokenUseStopped(_tokenId);
+        }
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(
             address(this), tokenId2UseStatus[_tokenId].owner,  _tokenId);
