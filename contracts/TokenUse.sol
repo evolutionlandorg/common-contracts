@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import "./interfaces/ERC223.sol";
 import "./interfaces/ITokenUse.sol";
 import "./interfaces/IActivity.sol";
 import "./interfaces/ISettingsRegistry.sol";
@@ -133,8 +134,13 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function takeTokenUseOffer(uint256 _tokenId) public {
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
 
+        uint256 cut =  expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
+
         ERC20(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transferFrom(
-            msg.sender, tokenId2UseOffer[_tokenId].owner, expense);
+            msg.sender, tokenId2UseOffer[_tokenId].owner, expense.sub(cut));
+
+        ERC223(registry.addressOf(CONTRACT_RING_ERC20_TOKEN)).transfer(
+            registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(msg.sender));
 
         _takeTokenUseOffer(_tokenId, expense, msg.sender);
     }
@@ -241,5 +247,10 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         token.transfer(owner, balance);
 
         emit ClaimedTokens(_token, owner, balance);
+    }
+
+    function toBytes(address x) public pure returns (bytes b) {
+        b = new bytes(32);
+        assembly { mstore(add(b, 32), x) }
     }
 }

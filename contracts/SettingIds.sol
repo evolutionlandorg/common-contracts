@@ -32,4 +32,15 @@ contract SettingIds {
     bytes32 public constant CONTRACT_DIVIDENDS_POOL = "CONTRACT_DIVIDENDS_POOL";
 
     bytes32 public constant CONTRACT_TOKEN_USE = "CONTRACT_TOKEN_USE";
+
+    bytes32 public constant CONTRACT_REVENUE_POOL = "CONTRACT_REVENUE_POOL";
+
+    // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
+    // this can be considered as transaction fee.
+    // Values 0-10,000 map to 0%-100%
+    // set ownerCut to 4%
+    // ownerCut = 400;
+    bytes32 public constant UINT_AUCTION_CUT = "UINT_AUCTION_CUT";  // Denominator is 10000
+
+    bytes32 public constant UINT_TOKEN_OFFER_CUT = "UINT_TOKEN_OFFER_CUT";  // Denominator is 10000
 }
