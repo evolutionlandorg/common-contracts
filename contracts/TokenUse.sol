@@ -160,6 +160,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     }
 
+
     // allow batch operation for user-friendly concern
     // recommand # of apostle <= 5 per operation
     //TODO: allow batch operation
@@ -238,13 +239,28 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         _removeTokenUse(_tokenId);
     }
 
-    function _removeTokenUse(uint256 _tokenId) public {
+    function _removeTokenUse(uint256 _tokenId) internal {
         IActivity(tokenId2UseStatus[_tokenId].acceptedActivity).tokenUseStopped(_tokenId);
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(
             address(this), tokenId2UseStatus[_tokenId].owner,  _tokenId);
 
         delete tokenId2UseStatus[_tokenId];
+    }
+
+    // for user-friendly
+    function removeUseAndcreateOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
+        require(tokenId2UseStatus[_tokenId].owner == msg.sender);
+
+        removeTokenUse(_tokenId);
+
+        tokenId2UseOffer[_tokenId] = UseOffer({
+            owner: msg.sender,
+            duration: uint48(_duration),
+            price : _price,
+            acceptedActivity: _acceptedActivity
+            });
+
     }
 
     /// @notice This method can be used by the owner to extract mistakenly
