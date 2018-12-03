@@ -195,7 +195,9 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         uint256 _tokenId, address _user
     ) public auth {
         require(tokenId2UseStatus[_tokenId].user == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
-        require(IActivity(msg.sender).isActivity(), "Msg sender must be activity");
+
+        require(IActivity(msg.sender).supportsInterface(0x8fc0f454), "Msg sender must be activity");
+
         require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
 
         require(tokenId2UseOffer[_tokenId].duration == 0, "Can not start activity when offering.");
