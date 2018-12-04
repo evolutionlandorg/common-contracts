@@ -7,6 +7,8 @@ import "./interfaces/ERC223.sol";
 import "./interfaces/ITokenUse.sol";
 import "./interfaces/IActivity.sol";
 import "./interfaces/ISettingsRegistry.sol";
+import "./interfaces/IInterstellarEncoder.sol";
+import "./interfaces/IActivityObject.sol";
 import "./SettingIds.sol";
 import "./DSAuth.sol";
 
@@ -36,12 +38,10 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     bool private singletonLock = false;
 
     ISettingsRegistry public registry;
+    mapping (uint256 => UseStatus) public tokenId2UseStatus;
+    mapping (uint256 => UseOffer) public tokenId2UseOffer;
 
     mapping (uint256 => address) currentTokenActivities;
-
-    mapping (uint256 => UseStatus) public tokenId2UseStatus;
-
-    mapping (uint256 => UseOffer) public tokenId2UseOffer;
 
     /*
      *  Modifiers
@@ -69,7 +69,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     // by check this function
-    // you can know if an nft is ok to startActivity
+    // you can know if an nft is ok to addActivity
     function isObjectReadyToUse(uint256 _tokenId) public view returns (bool) {
         return !isObjectInUseStage(_tokenId) && currentTokenActivities[_tokenId] == address(0);
     }
@@ -206,37 +206,35 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
 
     // start activity when token has no user at all
-    function startActivity(
+    function addActivity(
         uint256 _tokenId, address _user
     ) public auth {
         // require the token user to verify even if it is from business logic.
-        // if it is rent by others, can not startActivity by default.
+        // if it is rent by others, can not addActivity by default.
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
             require(_user == tokenId2UseStatus[_tokenId].user);
+            require(
+                tokenId2UseStatus[_tokenId].acceptedActivity == address(0) || tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
         } else {
             require(
                 address(0) == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
         }
 
-        require(IActivity(msg.sender).supportsInterface(0x8fc0f454), "Msg sender must be activity");
+        require(tokenId2UseOffer[_tokenId].owner == address(0), "Can not start activity when offering.");
+
+        require(IActivity(msg.sender).supportsInterface(0x6086e7f8), "Msg sender must be activity");
 
         require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
 
-        require(tokenId2UseOffer[_tokenId].duration == 0, "Can not start activity when offering.");
-
-        if(tokenId2UseStatus[_tokenId].user != address(0)) {
-            require(_user == tokenId2UseStatus[_tokenId].user, "User is not correct.");
-            require(
-                tokenId2UseStatus[_tokenId].acceptedActivity == address(0) || tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
-            
-        }
+        address activityObject = IInterstellarEncoder(registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER)).getObjectAddress(_tokenId);
+        IActivityObject(activityObject).activityAdded(_tokenId, msg.sender, _user);
 
         currentTokenActivities[_tokenId] = msg.sender;
     }
 
-    function stopActivity(uint256 _tokenId, address _user) public auth {
+    function removeActivity(uint256 _tokenId, address _user) public auth {
                 // require the token user to verify even if it is from business logic.
-        // if it is rent by others, can not startActivity by default.
+        // if it is rent by others, can not addActivity by default.
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
             require(_user == tokenId2UseStatus[_tokenId].user);
         } else {
@@ -246,7 +244,18 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         
         require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
 
+        address activityObject = IInterstellarEncoder(registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER)).getObjectAddress(_tokenId);
+        IActivityObject(activityObject).activityRemoved(_tokenId, msg.sender, _user);
+
         delete currentTokenActivities[_tokenId];
+    }
+
+    function removeTokenUseAndActivity(uint256 _tokenId) public {
+        removeTokenUse(_tokenId);
+
+        if (currentTokenActivities[_tokenId] != address(0)) {
+            IActivity(currentTokenActivities[_tokenId]).activityStopped(_tokenId);
+        }
     }
 
     function removeTokenUse(uint256 _tokenId) public {
@@ -260,12 +269,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         _removeTokenUse(_tokenId);
     }
 
-
     function _removeTokenUse(uint256 _tokenId) public {
-        if (currentTokenActivities[_tokenId] != address(0)) {
-            IActivity(currentTokenActivities[_tokenId]).tokenUseStopped(_tokenId);
-        }
-
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(
             address(this), tokenId2UseStatus[_tokenId].owner,  _tokenId);
 
@@ -291,7 +295,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             price : _price,
             acceptedActivity: _acceptedActivity
             });
-
     }
 
     /// @notice This method can be used by the owner to extract mistakenly

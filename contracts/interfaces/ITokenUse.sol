@@ -15,9 +15,9 @@ contract ITokenUse {
 
     function takeTokenUseOffer(uint256 _tokenId) public;
 
-    function startActivity(uint256 _tokenId, address _user) public;
+    function addActivity(uint256 _tokenId, address _user) public;
 
-    function stopActivity(uint256 _tokenId, address _user) public;
+    function removeActivity(uint256 _tokenId, address _user) public;
 
     function removeTokenUse(uint256 _tokenId) public;
 
