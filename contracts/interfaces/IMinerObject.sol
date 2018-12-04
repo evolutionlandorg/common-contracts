@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/introspection/ERC165.sol";
 
 contract IMinerObject is ERC165  {
-    bytes4 internal constant InterfaceId_IActivity = 0x64272b75;
+    bytes4 internal constant InterfaceId_IMinerObject = 0x64272b75;
     
     /*
      * 0x64272b752 ===
