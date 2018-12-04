@@ -209,7 +209,14 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function startActivity(
         uint256 _tokenId, address _user
     ) public auth {
-        require(tokenId2UseStatus[_tokenId].user == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
+        // require the token user to verify even if it is from business logic.
+        // if it is rent by others, can not startActivity by default.
+        if(tokenId2UseStatus[_tokenId].user != address(0)) {
+            require(_user == tokenId2UseStatus[_tokenId].user);
+        } else {
+            require(
+                address(0) == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
+        }
 
         require(IActivity(msg.sender).supportsInterface(0x8fc0f454), "Msg sender must be activity");
 
@@ -228,11 +235,16 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function stopActivity(uint256 _tokenId, address _user) public auth {
-        require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
-
+                // require the token user to verify even if it is from business logic.
+        // if it is rent by others, can not startActivity by default.
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
             require(_user == tokenId2UseStatus[_tokenId].user);
+        } else {
+            require(
+                address(0) == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
         }
+        
+        require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
 
         delete currentTokenActivities[_tokenId];
     }
