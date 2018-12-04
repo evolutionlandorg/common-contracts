@@ -279,15 +279,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     // for user-friendly
     function removeUseAndCreateOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
-        require(tokenId2UseStatus[_tokenId].owner == msg.sender);
-        require(tokenId2UseStatus[_tokenId].user != address(0), "Object does not exist.");
-        require(!isObjectInUseStage(_tokenId));
 
-        if (currentTokenActivities[_tokenId] != address(0)) {
-            IActivity(currentTokenActivities[_tokenId]).tokenUseStopped(_tokenId);
-        }
-
-        delete tokenId2UseStatus[_tokenId];
+        removeTokenUse(_tokenId);
 
         tokenId2UseOffer[_tokenId] = UseOffer({
             owner: msg.sender,
