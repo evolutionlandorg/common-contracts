@@ -9,6 +9,6 @@ contract IMiner is ERC165  {
      *   bytes4(keccak256('strengthOf(uint256)'))
      */
 
-    function strengthOf(uint256 _tokenId, address _prefer, address _resourceToken) public view returns (uint);
+    function strengthOf(uint256 _tokenId, address _resourceToken) public view returns (uint);
 
 }
