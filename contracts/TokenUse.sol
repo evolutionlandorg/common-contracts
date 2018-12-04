@@ -109,9 +109,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     // TODO: be careful with unit of duration and price
     // remember to deal with unit off chain
     function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
-        require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
-        require(tokenId2UseOffer[_tokenId].duration == 0, "Token already in another offer.");
-        require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
+        require(isObjectReadyToUse(_tokenId), "No, it is still in use.");
+        require(tokenId2UseOffer[_tokenId].owner == 0, "Token already in another offer.");
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(msg.sender, address(this), _tokenId);
 
