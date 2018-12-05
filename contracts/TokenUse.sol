@@ -18,6 +18,13 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     // claimedToken event
     event ClaimedTokens(address indexed token, address indexed owner, uint amount);
 
+    event OfferCreated(uint256 indexed tokenId, uint256 duration, uint256 price, address acceptedActivity, address owner);
+    event OfferCancelled(uint256 tokenId);
+    event OfferTaken(uint256 indexed tokenId, address from, address owner, uint256 now, uint256 endTime);
+    event ActivityAdded(uint256 indexed tokenId, address activity);
+    event ActivityRemoved(uint256 indexed tokenId, address activity);
+    event TokenUseRemoved(uint256 indexed tokenId, address owner, address user, address activity);
+
     struct UseStatus {
         address user;
         address owner;
@@ -109,9 +116,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     // TODO: be careful with unit of duration and price
     // remember to deal with unit off chain
     function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
-        require(tokenId2UseStatus[_tokenId].user == address(0), "Token already in another use.");
-        require(tokenId2UseOffer[_tokenId].duration == 0, "Token already in another offer.");
-        require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
+        require(isObjectReadyToUse(_tokenId), "No, it is still in use.");
+        require(tokenId2UseOffer[_tokenId].owner == 0, "Token already in another offer.");
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(msg.sender, address(this), _tokenId);
 
@@ -121,6 +127,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             price : _price,
             acceptedActivity: _acceptedActivity
         });
+
+        emit OfferCreated(_tokenId,_duration, _price, _acceptedActivity, _owner);
     }
 
     function cancelTokenUseOffer(uint256 _tokenId) public {
@@ -129,6 +137,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(address(this), msg.sender,  _tokenId);
 
         delete tokenId2UseOffer[_tokenId];
+
+        emit OfferCancelled(_tokenId);
     }
 
     function takeTokenUseOffer(uint256 _tokenId) public {
@@ -162,6 +172,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
         delete tokenId2UseOffer[_tokenId];
 
+        emit OfferTaken(_tokenId, _from, tokenId2UseStatus[_tokenId].owner, now, uint256(tokenId2UseStatus[_tokenId].endTime));
+
     }
 
     //TODO: allow batch operation
@@ -190,6 +202,21 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         }
     }
 
+    function registerTokenStatus(uint256 _tokenId, address _owner, address _user, uint256 _startTime, uint256 _endTime, uint256 _price, address _acceptedActivity) public auth {
+        require(isObjectReadyToUse(_tokenId));
+
+        tokenId2UseStatus[_tokenId] = UseStatus({
+            user: _user,
+            owner: _owner,
+            startTime: uint48(_startTime),
+            endTime : uint48(_endTime),
+            price : _price,
+            acceptedActivity: _acceptedActivity
+            });
+
+    }
+
+
     // start activity when token has no user at all
     function addActivity(
         uint256 _tokenId, address _user
@@ -215,6 +242,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         IActivityObject(activityObject).activityAdded(_tokenId, msg.sender, _user);
 
         currentTokenActivities[_tokenId] = msg.sender;
+
+        emit ActivityAdded(_tokenId, msg.sender);
     }
 
     function removeActivity(uint256 _tokenId, address _user) public auth {
@@ -233,6 +262,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         IActivityObject(activityObject).activityRemoved(_tokenId, msg.sender, _user);
 
         delete currentTokenActivities[_tokenId];
+
+        emit ActivityRemoved(_tokenId, msg.sender);
     }
 
     function removeTokenUseAndActivity(uint256 _tokenId) public {
@@ -255,16 +286,23 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function _removeTokenUse(uint256 _tokenId) public {
+
+        address owner = tokenId2UseStatus[_tokenId].owner;
+        address user = tokenId2UseStatus[_tokenId].user;
+        address activity = currentTokenActivities[_tokenId];
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(
-            address(this), tokenId2UseStatus[_tokenId].owner,  _tokenId);
+            address(this), owner,  _tokenId);
 
         delete tokenId2UseStatus[_tokenId];
+        delete currentTokenActivities[_tokenId];
+
+        emit TokenUseRemoved(_tokenId, owner, user, activity);
     }
 
     // for user-friendly
     function removeUseAndCreateOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
-        require(tokenId2UseStatus[_tokenId].owner == msg.sender);
 
+        require(msg.sender == tokenId2UseStatus[_tokenId].owner);
         removeTokenUse(_tokenId);
 
         tokenId2UseOffer[_tokenId] = UseOffer({
@@ -273,6 +311,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             price : _price,
             acceptedActivity: _acceptedActivity
             });
+
+        emit OfferCreated(_tokenId, _duration, _price, _acceptedActivity, msg.sender);
     }
 
     /// @notice This method can be used by the owner to extract mistakenly
