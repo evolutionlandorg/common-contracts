@@ -20,6 +20,4 @@ contract ITokenUse {
     function removeActivity(uint256 _tokenId, address _user) public;
 
     function removeTokenUse(uint256 _tokenId) public;
-
-    function registerTokenStatus(uint256 _tokenId) public;
 }
