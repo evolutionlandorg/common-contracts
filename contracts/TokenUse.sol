@@ -59,11 +59,11 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         singletonLock = true;
     }
 
-    function initializeContract(address _registry) public singletonLockCall {
+    function initializeContract(ISettingsRegistry _registry) public singletonLockCall {
         owner = msg.sender;
         emit LogSetOwner(msg.sender);
 
-        registry = ISettingsRegistry(_registry);
+        registry = _registry;
     }
 
     // false if it is not in useStage

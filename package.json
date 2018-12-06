@@ -22,6 +22,7 @@
   "homepage": "https://github.com/evolutionlandorg/common-contracts#readme",
   "dependencies": {
     "openzeppelin-solidity": "1.12.0",
-    "truffle-hdwallet-provider": "0.0.6"
+    "truffle-hdwallet-provider": "0.0.6",
+    "@evolutionland/upgraeability-using-unstructured-storage": "^0.1.1"
   }
 }
