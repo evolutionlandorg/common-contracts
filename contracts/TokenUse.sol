@@ -202,21 +202,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         }
     }
 
-    function registerTokenStatus(uint256 _tokenId, address _owner, address _user, uint256 _startTime, uint256 _endTime, uint256 _price, address _acceptedActivity) public auth {
-        require(isObjectReadyToUse(_tokenId));
-
-        tokenId2UseStatus[_tokenId] = UseStatus({
-            user: _user,
-            owner: _owner,
-            startTime: uint48(_startTime),
-            endTime : uint48(_endTime),
-            price : _price,
-            acceptedActivity: _acceptedActivity
-            });
-
-    }
-
-
     // start activity when token has no user at all
     function addActivity(
         uint256 _tokenId, address _user
