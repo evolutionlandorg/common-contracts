@@ -10,33 +10,33 @@ const conf = {
 }
 
 module.exports = async(deployer, network) => {
-    if(network != 'kovan') {
+    if(network == 'kovan') {
         return;
     }
 
-    // deployer.deploy(Proxy);
-    deployer.deploy(TokenUse);
-    //     .then(async() => {
-    //     await deployer.deploy(TokenUseAuthority, [conf.apostleBaseProxy_address]);
-    // }).then(async() => {
-    //     let registry = await SettingsRegistry.at(conf.registry_address);
-    //
-    //     let tokenUseId = await TokenUse.at(TokenUse.address).CONTRACT_TOKEN_USE.call();
-    //     await registry.setAddressProperty(tokenUseId, Proxy.address);
-    //     console.log("REGISTER DONE!");
-    //
-    //     await Proxy.at(Proxy.address).upgradeTo(TokenUse.address);
-    //     console.log("UPGRADE DONE!");
-    //
-    //     let tokenUseProxy = await TokenUse.at(Proxy.address);
-    //     await tokenUseProxy.initializeContract(conf.registry_address);
-    //     console.log("INITIALIZE DONE!");
-    //
-    //     // set authority
-    //     await tokenUseProxy.setAuthority(TokenUseAuthority.address);
-    //
-    //
-    // })
+    deployer.deploy(Proxy);
+    deployer.deploy(TokenUse)
+        .then(async() => {
+        await deployer.deploy(TokenUseAuthority, [conf.apostleBaseProxy_address]);
+    }).then(async() => {
+        let registry = await SettingsRegistry.at(conf.registry_address);
+
+        let tokenUseId = await TokenUse.at(TokenUse.address).CONTRACT_TOKEN_USE.call();
+        await registry.setAddressProperty(tokenUseId, Proxy.address);
+        console.log("REGISTER DONE!");
+
+        await Proxy.at(Proxy.address).upgradeTo(TokenUse.address);
+        console.log("UPGRADE DONE!");
+
+        let tokenUseProxy = await TokenUse.at(Proxy.address);
+        await tokenUseProxy.initializeContract(conf.registry_address);
+        console.log("INITIALIZE DONE!");
+
+        // set authority
+        await tokenUseProxy.setAuthority(TokenUseAuthority.address);
+
+
+    })
 
 
 }
