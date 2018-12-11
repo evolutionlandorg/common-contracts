@@ -133,7 +133,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function cancelTokenUseOffer(uint256 _tokenId) public {
-        require(ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == msg.sender, "Only token owner can cancel the offer.");
+        require(tokenId2UseOffer[_tokenId].owner == msg.sender, "Only token owner can cancel the offer.");
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(address(this), msg.sender,  _tokenId);
 
