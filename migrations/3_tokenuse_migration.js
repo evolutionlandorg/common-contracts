@@ -7,6 +7,7 @@ const Proxy = artifacts.require('OwnedUpgradeabilityProxy');
 const conf = {
     registry_address: '0xd8b7a3f6076872c2c37fb4d5cbfeb5bf45826ed7',
     apostleBaseProxy_address: '0x23236af7d03c4b0720f709593f5ace0ea92e77cf',
+    uint_token_offer_cut: 400
 }
 
 module.exports = async(deployer, network) => {
@@ -20,6 +21,9 @@ module.exports = async(deployer, network) => {
         await deployer.deploy(TokenUseAuthority, [conf.apostleBaseProxy_address]);
     }).then(async() => {
         let registry = await SettingsRegistry.at(conf.registry_address);
+
+        let tokenUseCutId = await TokenUse.at(TokenUse.address).UINT_TOKEN_OFFER_CUT.call();
+        await registry.setUintProperty(tokenUseCutId, conf.uint_token_offer_cut);
 
         let tokenUseId = await TokenUse.at(TokenUse.address).CONTRACT_TOKEN_USE.call();
         await registry.setAddressProperty(tokenUseId, Proxy.address);
