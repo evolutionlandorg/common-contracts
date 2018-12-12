@@ -21,7 +21,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     event OfferCreated(uint256 indexed tokenId, uint256 duration, uint256 price, address acceptedActivity, address owner);
     event OfferCancelled(uint256 tokenId);
     event OfferTaken(uint256 indexed tokenId, address from, address owner, uint256 now, uint256 endTime);
-    event ActivityAdded(uint256 indexed tokenId, address activity);
+    event ActivityAdded(uint256 indexed tokenId, address activity, uint256 endTime);
     event ActivityRemoved(uint256 indexed tokenId, address activity);
     event TokenUseRemoved(uint256 indexed tokenId, address owner, address user, address activity);
 
@@ -42,13 +42,18 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         address acceptedActivity;   // If 0, then accept any activity
     }
 
+    struct CurrentActivity {
+        address activity;
+        uint48 endTime;
+    }
+
     bool private singletonLock = false;
 
     ISettingsRegistry public registry;
     mapping (uint256 => UseStatus) public tokenId2UseStatus;
     mapping (uint256 => UseOffer) public tokenId2UseOffer;
 
-    mapping (uint256 => address) currentTokenActivities;
+    mapping (uint256 => CurrentActivity ) tokenId2CurrentActivity;
 
     /*
      *  Modifiers
@@ -78,7 +83,11 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     // by check this function
     // you can know if an nft is ok to addActivity
     function isObjectReadyToUse(uint256 _tokenId) public view returns (bool) {
-        return !isObjectInUseStage(_tokenId) && currentTokenActivities[_tokenId] == address(0);
+        if(tokenId2CurrentActivity[_tokenId].endTime == 0) {
+            return tokenId2CurrentActivity[_tokenId].activity == address(0);
+        } else {
+            return now > tokenId2CurrentActivity[_tokenId].endTime;
+        }
     }
 
 
@@ -160,7 +169,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     function _takeTokenUseOffer(uint256 _tokenId, address _from) internal {
         require(tokenId2UseOffer[_tokenId].owner != address(0), "Offer does not exist for this token.");
-        require(currentTokenActivities[_tokenId] == address(0), "Token already in another activity.");
+        require(tokenId2CurrentActivity[_tokenId].activity == address(0), "Token already in another activity.");
 
         tokenId2UseStatus[_tokenId] = UseStatus({
             user: _from,
@@ -197,7 +206,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             ERC20(ring).transfer(tokenId2UseOffer[tokenId].owner, expense.sub(cut));
 
             ERC223(ring).transfer(
-                registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(msg.sender));
+                registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(_from));
 
             _takeTokenUseOffer(tokenId, _from);
         }
@@ -205,7 +214,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     // start activity when token has no user at all
     function addActivity(
-        uint256 _tokenId, address _user
+        uint256 _tokenId, address _user, uint256 _endTime
     ) public auth {
         // require the token user to verify even if it is from business logic.
         // if it is rent by others, can not addActivity by default.
@@ -222,14 +231,21 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
         require(IActivity(msg.sender).supportsInterface(0x6086e7f8), "Msg sender must be activity");
 
-        require(currentTokenActivities[_tokenId] == address(0), "Token should be available.");
+        require(isObjectReadyToUse(_tokenId), "Token should be available.");
 
         address activityObject = IInterstellarEncoder(registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER)).getObjectAddress(_tokenId);
         IActivityObject(activityObject).activityAdded(_tokenId, msg.sender, _user);
 
-        currentTokenActivities[_tokenId] = msg.sender;
+        tokenId2CurrentActivity[_tokenId].activity = msg.sender;
 
-        emit ActivityAdded(_tokenId, msg.sender);
+        if(tokenId2UseStatus[_tokenId].endTime != 0) {
+            tokenId2CurrentActivity[_tokenId].endTime = tokenId2UseStatus[_tokenId].endTime;
+        } else {
+            tokenId2CurrentActivity[_tokenId].endTime = uint48(_endTime);
+        }
+
+
+        emit ActivityAdded(_tokenId, msg.sender, uint48(tokenId2CurrentActivity[_tokenId].endTime));
     }
 
     function removeActivity(uint256 _tokenId, address _user) public auth {
@@ -242,12 +258,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
                 address(0) == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
         }
         
-        require(currentTokenActivities[_tokenId] == msg.sender, "Must stop from current activity");
+        require(tokenId2CurrentActivity[_tokenId].activity == msg.sender, "Must stop from current activity");
 
         address activityObject = IInterstellarEncoder(registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER)).getObjectAddress(_tokenId);
         IActivityObject(activityObject).activityRemoved(_tokenId, msg.sender, _user);
 
-        delete currentTokenActivities[_tokenId];
+        delete tokenId2CurrentActivity[_tokenId];
 
         emit ActivityRemoved(_tokenId, msg.sender);
     }
@@ -255,8 +271,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function removeTokenUseAndActivity(uint256 _tokenId) public {
         removeTokenUse(_tokenId);
 
-        if (currentTokenActivities[_tokenId] != address(0)) {
-            IActivity(currentTokenActivities[_tokenId]).activityStopped(_tokenId);
+        if (tokenId2CurrentActivity[_tokenId].activity != address(0)) {
+            IActivity(tokenId2CurrentActivity[_tokenId].activity).activityStopped(_tokenId);
         }
     }
 
@@ -275,12 +291,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
         address owner = tokenId2UseStatus[_tokenId].owner;
         address user = tokenId2UseStatus[_tokenId].user;
-        address activity = currentTokenActivities[_tokenId];
+        address activity = tokenId2CurrentActivity[_tokenId].activity;
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(
             address(this), owner,  _tokenId);
 
         delete tokenId2UseStatus[_tokenId];
-        delete currentTokenActivities[_tokenId];
+        delete tokenId2CurrentActivity[_tokenId];
 
         emit TokenUseRemoved(_tokenId, owner, user, activity);
     }

@@ -13,7 +13,7 @@ contract TokenUseAuthority {
     function canCall(
         address _src, address _dst, bytes4 _sig
     ) public view returns (bool) {
-        return (whiteList[_src] && _sig == bytes4(keccak256("addActivity(uint256,address)"))) ||
+        return (whiteList[_src] && _sig == bytes4(keccak256("addActivity(uint256,address,uint256)"))) ||
         ( whiteList[_src] && _sig == bytes4(keccak256("removeActivity(uint256,address)")));
     }
 }
