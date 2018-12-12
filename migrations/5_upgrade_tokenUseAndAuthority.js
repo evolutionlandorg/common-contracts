@@ -18,6 +18,7 @@ module.exports = async(deployer, network) => {
     deployer.deploy(TokenUse).then(async() => {
         await Proxy.at(conf.tokenUseProxy_address).upgradeTo(TokenUse.address);
 
+        console.log("UPGRADE DONE!")
         let tokenUseProxy = await TokenUse.at(conf.tokenUseProxy_address);
         await tokenUseProxy.setAuthority(TokenUseAuthority.address);
     })

@@ -261,10 +261,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
                 address(0) == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
         }
         
-        require(tokenId2CurrentActivity[_tokenId].activity == msg.sender, "Must stop from current activity");
+        require(tokenId2CurrentActivity[_tokenId].activity == msg.sender || msg.sender == address(this), "Must stop from current activity");
 
         address activityObject = IInterstellarEncoder(registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER)).getObjectAddress(_tokenId);
         IActivityObject(activityObject).activityRemoved(_tokenId, msg.sender, _user);
+
+        IActivity(tokenId2CurrentActivity[_tokenId].activity).activityStopped(_tokenId);
 
         delete tokenId2CurrentActivity[_tokenId];
 
@@ -282,7 +284,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         _removeTokenUse(_tokenId);
 
         if (tokenId2CurrentActivity[_tokenId].activity != address(0)) {
-            IActivity(tokenId2CurrentActivity[_tokenId].activity).activityStopped(_tokenId);
+            removeActivity(_tokenId, address(0));
         }
     }
 
