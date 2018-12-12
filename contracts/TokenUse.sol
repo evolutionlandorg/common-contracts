@@ -72,6 +72,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     // false if it is not in useStage
+    // based on data in TokenUseStatus
     function isObjectInUseStage(uint256 _tokenId) public view returns (bool) {
         if (tokenId2UseStatus[_tokenId].user == address(0)) {
             return false;
@@ -82,7 +83,9 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     // by check this function
     // you can know if an nft is ok to addActivity
+    // based on data in CurrentActivity
     function isObjectReadyToUse(uint256 _tokenId) public view returns (bool) {
+
         if(tokenId2CurrentActivity[_tokenId].endTime == 0) {
             return tokenId2CurrentActivity[_tokenId].activity == address(0);
         } else {
@@ -258,10 +261,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
                 address(0) == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
         }
         
-        require(tokenId2CurrentActivity[_tokenId].activity == msg.sender, "Must stop from current activity");
+        require(tokenId2CurrentActivity[_tokenId].activity == msg.sender || msg.sender == address(this), "Must stop from current activity");
 
         address activityObject = IInterstellarEncoder(registry.addressOf(CONTRACT_INTERSTELLAR_ENCODER)).getObjectAddress(_tokenId);
         IActivityObject(activityObject).activityRemoved(_tokenId, msg.sender, _user);
+
+        IActivity(tokenId2CurrentActivity[_tokenId].activity).activityStopped(_tokenId);
 
         delete tokenId2CurrentActivity[_tokenId];
 
@@ -269,14 +274,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     function removeTokenUseAndActivity(uint256 _tokenId) public {
-        removeTokenUse(_tokenId);
-
-        if (tokenId2CurrentActivity[_tokenId].activity != address(0)) {
-            IActivity(tokenId2CurrentActivity[_tokenId].activity).activityStopped(_tokenId);
-        }
-    }
-
-    function removeTokenUse(uint256 _tokenId) public {
         require(tokenId2UseStatus[_tokenId].user != address(0), "Object does not exist.");
 
         // when in activity, only user can stop
@@ -285,7 +282,12 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         }
 
         _removeTokenUse(_tokenId);
+
+        if (tokenId2CurrentActivity[_tokenId].activity != address(0)) {
+            removeActivity(_tokenId, address(0));
+        }
     }
+
 
     function _removeTokenUse(uint256 _tokenId) public {
 
@@ -296,7 +298,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
             address(this), owner,  _tokenId);
 
         delete tokenId2UseStatus[_tokenId];
-        delete tokenId2CurrentActivity[_tokenId];
+//        delete tokenId2CurrentActivity[_tokenId];
 
         emit TokenUseRemoved(_tokenId, owner, user, activity);
     }
@@ -305,7 +307,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function removeUseAndCreateOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity) public {
 
         require(msg.sender == tokenId2UseStatus[_tokenId].owner);
-        removeTokenUse(_tokenId);
+        removeTokenUseAndActivity(_tokenId);
 
         tokenId2UseOffer[_tokenId] = UseOffer({
             owner: msg.sender,
