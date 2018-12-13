@@ -3,7 +3,7 @@ pragma solidity ^0.4.24;
 contract ITokenUse {
     uint48 public constant MAX_UINT48_TIME = 281474976710655;
 
-    function isObjectInUseStage(uint256 _tokenId) public view returns (bool);
+    function isObjectInHireStage(uint256 _tokenId) public view returns (bool);
 
     function isObjectReadyToUse(uint256 _tokenId) public view returns (bool);
 
@@ -18,6 +18,4 @@ contract ITokenUse {
     function addActivity(uint256 _tokenId, address _user, uint256 _endTime) public;
 
     function removeActivity(uint256 _tokenId, address _user) public;
-
-    function removeTokenUse(uint256 _tokenId) public;
 }
