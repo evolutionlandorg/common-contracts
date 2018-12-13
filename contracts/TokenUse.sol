@@ -53,7 +53,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     mapping (uint256 => UseStatus) public tokenId2UseStatus;
     mapping (uint256 => UseOffer) public tokenId2UseOffer;
 
-    mapping (uint256 => CurrentActivity ) tokenId2CurrentActivity;
+    mapping (uint256 => CurrentActivity ) public tokenId2CurrentActivity;
 
     /*
      *  Modifiers
@@ -73,7 +73,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     // false if it is not in useStage
     // based on data in TokenUseStatus
-    function isObjectInUseStage(uint256 _tokenId) public view returns (bool) {
+    function isObjectInHireStage(uint256 _tokenId) public view returns (bool) {
         if (tokenId2UseStatus[_tokenId].user == address(0)) {
             return false;
         }
@@ -130,6 +130,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     function _createTokenUseOffer(uint256 _tokenId, uint256 _duration, uint256 _price, address _acceptedActivity, address _owner) internal {
         require(isObjectReadyToUse(_tokenId), "No, it is still in use.");
         require(tokenId2UseOffer[_tokenId].owner == 0, "Token already in another offer.");
+        require(_price >= 1 ether, "price must larger than 1 ring.");
         require(_duration >= 7 days);
 
         ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).transferFrom(_owner, address(this), _tokenId);
@@ -224,7 +225,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         if(tokenId2UseStatus[_tokenId].user != address(0)) {
             require(_user == tokenId2UseStatus[_tokenId].user);
             require(
-                tokenId2UseStatus[_tokenId].acceptedActivity == address(0) || tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
+                tokenId2UseStatus[_tokenId].acceptedActivity == address(0) ||
+                tokenId2UseStatus[_tokenId].acceptedActivity == msg.sender, "Token accepted activity is not accepted.");
         } else {
             require(
                 address(0) == _user || ERC721(registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)).ownerOf(_tokenId) == _user, "you can not use this token.");
@@ -277,7 +279,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         require(tokenId2UseStatus[_tokenId].user != address(0), "Object does not exist.");
 
         // when in activity, only user can stop
-        if(isObjectInUseStage(_tokenId)) {
+        if(isObjectInHireStage(_tokenId)) {
             require(tokenId2UseStatus[_tokenId].user == msg.sender);
         }
 

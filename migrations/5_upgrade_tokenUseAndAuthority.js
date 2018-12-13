@@ -10,15 +10,15 @@ const conf = {
 
 module.exports = async(deployer, network) => {
 
-    if(network != 'kovan') {
+    if(network == 'kovan') {
         return;
     }
 
-    deployer.deploy(TokenUseAuthority, [conf.apostleBaseProxy_address, conf.landResourceProxy_address]);
+    deployer.deploy(TokenUseAuthority, [conf.tokenUseProxy_address,conf.apostleBaseProxy_address, conf.landResourceProxy_address]);
     deployer.deploy(TokenUse).then(async() => {
         await Proxy.at(conf.tokenUseProxy_address).upgradeTo(TokenUse.address);
 
-        console.log("UPGRADE DONE!")
+        console.log("UPGRADE DONE!");
         let tokenUseProxy = await TokenUse.at(conf.tokenUseProxy_address);
         await tokenUseProxy.setAuthority(TokenUseAuthority.address);
     })
