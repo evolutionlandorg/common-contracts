@@ -341,4 +341,8 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         b = new bytes(32);
         assembly { mstore(add(b, 32), x) }
     }
+
+    function getMinerFromLand(uint256 _landTokenId, address _resourceToken, uint _index) public view returns(uint256) {
+
+    }
 }
