@@ -286,7 +286,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         _removeTokenUse(_tokenId);
 
         if (tokenId2CurrentActivity[_tokenId].activity != address(0)) {
-            removeActivity(_tokenId, address(0));
+            this.removeActivity(_tokenId, address(0));
         }
     }
 
