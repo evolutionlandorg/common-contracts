@@ -24,6 +24,7 @@ contract ObjectOwnershipV2 is ERC721Token("Evolution Land Objects","EVO"), DSAut
         singletonLock = true;
     }
 
+    // https://docs.opensea.io/docs/2-adding-metadata
     string public baseTokenURI;
 
     /**
@@ -64,6 +65,10 @@ contract ObjectOwnershipV2 is ERC721Token("Evolution Land Objects","EVO"), DSAut
         }
 
         return super.tokenURI(_tokenId);
+    }
+
+    function setTokenURI(uint256 _tokenId, string _uri) public auth {
+        _setTokenURI(_tokenId, _uri);
     }
 
     function setBaseTokenURI(string _newBaseTokenURI) public auth  {
