@@ -173,7 +173,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
     function _takeTokenUseOffer(uint256 _tokenId, address _from) internal {
         require(tokenId2UseOffer[_tokenId].owner != address(0), "Offer does not exist for this token.");
-        require(tokenId2CurrentActivity[_tokenId].activity == address(0), "Token already in another activity.");
+        require(isObjectReadyToUse(_tokenId), "Token already in another activity.");
 
         tokenId2UseStatus[_tokenId] = UseStatus({
             user: _from,
