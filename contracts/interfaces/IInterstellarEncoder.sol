@@ -10,6 +10,7 @@ contract IInterstellarEncoder {
     enum ObjectClass { 
         NaN,
         LAND,
+        APOSTLE,
         OBJECT_CLASS_COUNT
     }
 
