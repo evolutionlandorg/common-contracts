@@ -44,7 +44,7 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
         singletonLock = true;
     }
 
-    function initializeContract(ISettingsRegistry _registry, INFTAdaptor _originNft) public singletonLockCall {
+    function initializeContract(ISettingsRegistry _registry, ERC721 _originNft) public singletonLockCall {
         owner = msg.sender;
         emit LogSetOwner(msg.sender);
         registry = _registry;
