@@ -1,19 +1,15 @@
 pragma solidity ^0.4.23;
 
 import "./PausableDSAuth.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/ISettingsRegistry.sol";
 import "./SettingIds.sol";
 import "./interfaces/IInterstellarEncoderV3.sol";
 import "./interfaces/IMintableERC20.sol";
+import "./interfaces/INFTAdaptor.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
 
 contract ERC721Bridge is SettingIds, PausableDSAuth {
-
-    // TODO: later
-    //    struct WorkStatus {
-    //
-    //    }
 
     /*
      *  Storage
@@ -22,22 +18,18 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
 
     ISettingsRegistry public registry;
 
-    ERC721 public originNft;
 
-    uint128 public lastObjectId;
-
-    // tokenId_outside_evolutionLand => tokenId_inside
-    mapping(uint256 => uint256) public tokenIdOut2In;
-
-    // tokenId_inside => tokenId_outside
-    mapping(uint256 => uint256) public tokenIdIn2Out;
-
-
+    // originNFTContract => its adator
+    // for instance, CryptoKitties => CryptoKittiesAdaptor
+    // this need to be registered by owner
+    mapping(address => address) public originNft2Adaptor;
 
     /*
     *  Event
     */
-    event BridgeIn(uint256 originTokenId, uint256 tokenId, address originContract, address owner);
+    event BridgeIn(uint256 originTokenId, uint256 tokenId, address originContract, address adaptorAddress, address owner);
+
+    event SwapIn(uint256 originTokenId, uint256 tokenId, address owner);
 
 
     /*
@@ -49,36 +41,52 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         singletonLock = true;
     }
 
-    function initializeContract(ISettingsRegistry _registry, ERC721 _originNft) public singletonLockCall {
+    function initializeContract(ISettingsRegistry _registry, INFTAdaptor _originNft) public singletonLockCall {
         owner = msg.sender;
         emit LogSetOwner(msg.sender);
         registry = _registry;
-        originNft = _originNft;
     }
 
-    function bridgeIn(uint256 _originTokenId) public {
-        require(originNft.ownerOf(_originTokenId) == msg.sender, "Invalid owner!");
-        require(tokenIdOut2In[_originTokenId] == 0);
+    function registerAdaptor(address _originNftAddress, address _erc721Adaptor) public whenNotPaused onlyOwner {
+        originNft2Adaptor[_originNftAddress] = _erc721Adaptor;
+    }
 
-        // first time to bridge in
-        lastObjectId += 1;
 
-        IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        uint256 tokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(address(this), address(originNft), lastObjectId);
+    // generate new mirror token without origin token frozen
+    function bridgeIn(address _originNftAddress, uint256 _originTokenId) public {
+        require(ERC721(_originNftAddress).ownerOf(_originTokenId) == msg.sender, "Invalid owner!");
+        address adaptor = originNft2Adaptor[_originNftAddress];
+        require(adaptor != address(0), 'not registered!');
 
-        // link objects_in and objects_out
-        tokenIdOut2In[_originTokenId] = tokenId;
-        tokenIdIn2Out[tokenId] = _originTokenId;
-
+        uint256 tokenId = INFTAdaptor(adaptor).convertTokenId(_originTokenId);
         // keep new mirror object in this contract
         // before the owner has transferred his/her outerObject into this contract
         // mirror object can not be transferred
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         IMintableERC20(objectOwnership).mint(address(this), tokenId);
 
 
-        emit BridgeIn(_originTokenId, tokenId, address(originNft), msg.sender);
+        emit BridgeIn(_originTokenId, tokenId, _originNftAddress, adaptor, msg.sender);
     }
+
+    // freeze origin token to free mirror token
+    function swapIn(address _originNftAddress, uint256 _originTokenId) public {
+        require(ERC721(_originNftAddress).ownerOf(_originTokenId) == msg.sender, "Invalid owner!");
+        address adaptor = originNft2Adaptor[_originNftAddress];
+        require(adaptor != address(0), 'not registered!');
+
+        // all specific originTokens are kept in their adaptor
+        ERC721(_originNftAddress).transferFrom(msg.sender, adaptor, _originTokenId);
+        // mirror token of origin token
+        // mirror tokens are kept in address(this)
+        uint256 tokenId =  INFTAdaptor(adaptor).tokenIdOut2In(_originTokenId);
+
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+        ERC721(objectOwnership).transferFrom(address(this), msg.sender, tokenId);
+
+        emit SwapIn(_originTokenId, tokenId, msg.sender);
+    }
+
 
 
 }
