@@ -35,6 +35,8 @@ contract SettingIds {
 
     bytes32 public constant CONTRACT_REVENUE_POOL = "CONTRACT_REVENUE_POOL";
 
+    bytes32 public constant CONTRACT_ERC721_BRIDGE = "CONTRACT_ERC721_BRIDGE";
+
     // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
     // this can be considered as transaction fee.
     // Values 0-10,000 map to 0%-100%
