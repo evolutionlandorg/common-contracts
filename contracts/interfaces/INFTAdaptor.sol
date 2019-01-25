@@ -7,4 +7,5 @@ contract INFTAdaptor is ERC721 {
 
     function tokenIdOut2In(uint256 _originTokenId) public view returns (uint256);
 
+    function ownerOf(uint256 _originTokenId) public view returns (address);
 }

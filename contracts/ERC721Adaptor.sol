@@ -69,7 +69,7 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
         return tokenId;
     }
 
-    function approveToCKPet(address _bridge) public onlyOwner {
+    function approveToBridge(address _bridge) public onlyOwner {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         ERC721(objectOwnership).setApprovalForAll(_bridge, true);
     }
@@ -79,6 +79,18 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         ERC721(objectOwnership).setApprovalForAll(_bridge, false);
     }
+
+    function ownerOf(uint256 _originTokenId) public view returns (address) {
+        return originNft.ownerOf(_originTokenId);
+    }
+
+    function getObjectClass(uint256 _originTokenId) public view returns (uint8) {
+        IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
+        uint256 tokenId = tokenIdOut2In[_originTokenId];
+        return interstellarEncoder.getObjectClass(tokenId);
+    }
+
+
 
 
 

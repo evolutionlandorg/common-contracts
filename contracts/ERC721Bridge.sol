@@ -54,8 +54,8 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
 
     // generate new mirror token without origin token frozen
     function bridgeIn(address _originNftAddress, uint256 _originTokenId) public {
-        require(ERC721(_originNftAddress).ownerOf(_originTokenId) == msg.sender, "Invalid owner!");
         address adaptor = originNft2Adaptor[_originNftAddress];
+        require(INFTAdaptor(adaptor).ownerOf(_originTokenId) == msg.sender, "Invalid owner!");
         require(adaptor != address(0), 'not registered!');
 
         uint256 tokenId = INFTAdaptor(adaptor).convertTokenId(_originTokenId);
