@@ -59,7 +59,6 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
         lastObjectId += 1;
 
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(address(this), address(originNft), lastObjectId);
 
         // link objects_in and objects_out
