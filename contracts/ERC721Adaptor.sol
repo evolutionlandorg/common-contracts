@@ -1,4 +1,5 @@
 pragma solidity ^0.4.24;
+
 import "./SettingIds.sol";
 import "./PausableDSAuth.sol";
 import "./interfaces/ISettingsRegistry.sol";
@@ -31,7 +32,7 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
     /*
     *  Event
     */
-    event BridgeIn(uint256 originTokenId, uint256 tokenId, address originContract, address owner);
+    event BridgeIn(uint256 originTokenId, uint256 mirrorTokenId, address originContract, address owner);
 
 
     /*
@@ -51,22 +52,23 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
     }
 
 
-
     function convertTokenId(uint256 _originTokenId) public auth returns (uint256) {
-        require(tokenIdOut2In[_originTokenId] == 0);
 
+        require(tokenIdOut2In[_originTokenId] == 0, "already exists");
         // first time to bridge in
         lastObjectId += 1;
 
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        uint256 tokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(address(this), address(originNft), lastObjectId);
+        uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(address(this), address(originNft), lastObjectId);
 
         // link objects_in and objects_out
-        tokenIdOut2In[_originTokenId] = tokenId;
-        tokenIdIn2Out[tokenId] = _originTokenId;
+        tokenIdOut2In[_originTokenId] = mirrorTokenId;
+        tokenIdIn2Out[mirrorTokenId] = _originTokenId;
 
-        return tokenId;
+        return mirrorTokenId;
+
+
     }
 
     function approveToBridge(address _bridge) public onlyOwner {
@@ -80,18 +82,46 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
         ERC721(objectOwnership).setApprovalForAll(_bridge, false);
     }
 
-    function ownerOf(uint256 _originTokenId) public view returns (address) {
-        return originNft.ownerOf(_originTokenId);
+    function approveOriginToken(address _bridge, uint256 _originTokenId) public auth {
+        ERC721(originNft).approve(_bridge, _originTokenId);
+    }
+
+    function ownerOfOrigin(uint256 _originTokenId) public view returns (address) {
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+        address owner = ERC721(originNft).ownerOf(_originTokenId);
+        if(owner != address(this)) {
+            return owner;
+        } else {
+            uint mirrorTokenId = tokenIdIn2Out[_originTokenId];
+            return ERC721(objectOwnership).ownerOf(mirrorTokenId);
+        }
+    }
+
+    function ownerOfMirror(uint256 _mirrorTokenId) public view returns (address) {
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+        address owner = ERC721(objectOwnership).ownerOf(_mirrorTokenId);
+        if(owner != address(this)) {
+            return owner;
+        } else {
+            uint originTokenId = tokenIdIn2Out[_mirrorTokenId];
+            return originNft.ownerOf(originTokenId);
+        }
+    }
+
+
+    function isBridged(uint256 _originTokenId) public view returns (bool) {
+        if (tokenIdOut2In[_originTokenId] != 0) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function getObjectClass(uint256 _originTokenId) public view returns (uint8) {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        uint256 tokenId = tokenIdOut2In[_originTokenId];
-        return interstellarEncoder.getObjectClass(tokenId);
+        uint256 mirrorTokenId = tokenIdOut2In[_originTokenId];
+        return interstellarEncoder.getObjectClass(mirrorTokenId);
     }
-
-
-
 
 
 }
