@@ -47,7 +47,7 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         singletonLock = true;
     }
 
-    function initializeContract(ISettingsRegistry _registry, INFTAdaptor _originNft) public singletonLockCall {
+    function initializeContract(ISettingsRegistry _registry) public singletonLockCall {
         owner = msg.sender;
         emit LogSetOwner(msg.sender);
         registry = _registry;
