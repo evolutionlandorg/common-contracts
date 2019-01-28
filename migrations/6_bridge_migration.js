@@ -37,28 +37,42 @@ module.exports = async (deployer, network) => {
         let registry = await SettingsRegistry.at(conf.registry_address);
         await registry.setAddressProperty(bridgeId, erc721BridgeProxy_address);
 
+        console.log("111");
+
         // upgrade
         let proxy = await Proxy.at(erc721BridgeProxy_address);
         await proxy.upgradeTo(ERC721Bridge.address);
+
+        console.log("222");
 
         // initialize
         let erc721Bridge = await ERC721Bridge.at(erc721BridgeProxy_address);
         await erc721Bridge.initializeContract(conf.registry_address);
 
+        console.log("333");
+
         // setAuthority
         let objectOwnershipProxy = await ObjectOwnershipV2.at(conf.objectOwnershipProxy_address);
         await objectOwnershipProxy.setAuthority(ObjectOwnershipAuthorityV2.address);
+
+        console.log("444");
 
         // interstellarencoder
         let encoderId = await brige.CONTRACT_INTERSTELLAR_ENCODER.call();
         let encoder = await InterstellarEncoderV3.deployed();
         await registry.setAddressProperty(encoderId, encoder.address);
 
+        console.log("555");
+
         await encoder.registerNewTokenContract(conf.objectOwnershipProxy_address);
         await encoder.registerNewTokenContract(conf.kittyCore_address);
 
+        console.log("666");
+
         await encoder.registerNewObjectClass(conf.landResourceProxy_address, 1);
         await encoder.registerNewObjectClass(conf.apostleBaseProxy_address, 2);
+
+        console.log("777");
 
 
     })
