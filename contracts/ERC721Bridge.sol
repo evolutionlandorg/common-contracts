@@ -57,17 +57,23 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         originNft2Adaptor[_originNftAddress] = _erc721Adaptor;
     }
 
+    function bridgeInAndTie(address _originNftAddress, uint256 _originTokenId, uint256 _apostleTokenId) public {
+        uint256 mirrorTokenId = bridgeIn(_originNftAddress, _originTokenId);
+        address adaptor = originNft2Adaptor[_originNftAddress];
+        INFTAdaptor(adaptor).tieMirrorTokenToApostle(mirrorTokenId, _apostleTokenId, msg.sender);
+    }
 
     // generate new mirror token without origin token frozen
-    function bridgeIn(address _originNftAddress, uint256 _originTokenId) public {
+    function bridgeIn(address _originNftAddress, uint256 _originTokenId) public returns (uint256){
 
         address adaptor = originNft2Adaptor[_originNftAddress];
-        require(INFTAdaptor(adaptor).ownerOf(_originTokenId) == msg.sender, "Invalid owner!");
+        require(INFTAdaptor(adaptor).ownerOfOrigin(_originTokenId) == msg.sender, "Invalid owner!");
         require(adaptor != address(0), 'not registered!');
+        uint256 mirrorTokenId = INFTAdaptor(adaptor).tokenIdOut2In(_originTokenId);
 
         // if it is the first time to bridge in
         if (!INFTAdaptor(adaptor).isBridged(_originTokenId)) {
-            uint256 mirrorTokenId = INFTAdaptor(adaptor).convertTokenId(_originTokenId);
+            mirrorTokenId = INFTAdaptor(adaptor).convertTokenId(_originTokenId);
             // keep new mirror object in this contract
             // before the owner has transferred his/her outerObject into this contract
             // mirror object can not be transferred
@@ -76,6 +82,8 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
 
             emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, msg.sender);
         }
+
+        return mirrorTokenId;
 
 
     }

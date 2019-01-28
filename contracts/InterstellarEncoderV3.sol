@@ -9,8 +9,6 @@ contract InterstellarEncoderV3 is IInterstellarEncoder, Ownable {
     mapping(uint16 => address) public contractId2Address;
     mapping(address => uint16) public contractAddress2Id;
 
-    mapping(uint8 => uint16) public objectClass2landId;
-
     mapping(address => uint8) public objectContract2ObjectClass;
 
     uint16 public lastContractId = 0;
@@ -26,13 +24,13 @@ contract InterstellarEncoderV3 is IInterstellarEncoder, Ownable {
             + (CHAIN_ID << 216) + (uint256(contractId) << 200) + (uint256(_objectClass) << 192) + (CURRENT_LAND << 128) + uint256(_objectId);
     }
 
-    function encodeTokenIdForOuter(address _tokenAddress, address _objectContract, uint8 _objectClass, uint128 _objectId) public view returns (uint256) {
-        uint16 contractId = contractAddress2Id[_tokenAddress];
-        uint16 originContractId = contractAddress2Id[_objectContract];
-        require( contractId > 0 && originContractId > 0 && objectClass2landId[_objectClass] > 0, "Contract address does not exist");
+    function encodeTokenIdForOuter(address _objectContract, address _nftAddress, address _originNftAddress, uint8 _objectClass, uint128 _objectId, uint16 _producerId) public view returns (uint256) {
+        uint16 contractId = contractAddress2Id[_nftAddress];
+        uint16 originContractId = contractAddress2Id[_originNftAddress];
+        require( contractId > 0 && originContractId > 0 && _producerId > 0, "Contract address does not exist");
 
         uint256 tokenId = (MAGIC_NUMBER << 248) + (CHAIN_ID << 240) + (uint256(contractId) << 224)
-        + (CHAIN_ID << 216) + (uint256(originContractId) << 200) + (uint256(_objectClass) << 192) + (uint256(objectClass2landId[_objectClass]) << 128) + uint256(_objectId);
+        + (CHAIN_ID << 216) + (uint256(originContractId) << 200) + (uint256(_objectClass) << 192) + (uint256(_producerId) << 128) + uint256(_objectId);
 
         return tokenId;
     }
@@ -40,10 +38,10 @@ contract InterstellarEncoderV3 is IInterstellarEncoder, Ownable {
     // TODO; newly added
     // @param _tokenAddress - objectOwnership
     // @param _objectContract - xxxBase contract
-    function encodeTokenIdForOuterObjectContract(address _tokenAddress, address _objectContract, uint128 _objectId) public view returns (uint256) {
+    function encodeTokenIdForOuterObjectContract(address _objectContract, address _nftAddress, address _originNftAddress, uint128 _objectId, uint16 _producerId) public view returns (uint256) {
         require (objectContract2ObjectClass[_objectContract] > 0, "Object class for this object contract does not exist.");
 
-        return encodeTokenIdForOuter(_tokenAddress, _objectContract, objectContract2ObjectClass[_objectContract], _objectId);
+        return encodeTokenIdForOuter(_objectContract,_nftAddress, _originNftAddress, objectContract2ObjectClass[_objectContract], _objectId, _producerId);
 
     }
     // TODO; newly added
@@ -68,6 +66,7 @@ contract InterstellarEncoderV3 is IInterstellarEncoder, Ownable {
         objectContract2ObjectClass[_objectContract] = _objectClass;
         objectClass2ObjectContract[_objectClass] = _objectContract;
     }
+
 
     function getContractAddress(uint256 _tokenId) public view returns (address) {
         return contractId2Address[uint16((_tokenId << 16) >> 240)];
