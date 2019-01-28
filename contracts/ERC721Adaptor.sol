@@ -15,6 +15,8 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
     */
     bool private singletonLock = false;
 
+    uint16 public producerId;
+
     ISettingsRegistry public registry;
 
     ERC721 public originNft;
@@ -44,11 +46,12 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
         singletonLock = true;
     }
 
-    function initializeContract(ISettingsRegistry _registry, INFTAdaptor _originNft) public singletonLockCall {
+    function initializeContract(ISettingsRegistry _registry, ERC721 _originNft, uint16 _producerId) public singletonLockCall {
         owner = msg.sender;
         emit LogSetOwner(msg.sender);
         registry = _registry;
         originNft = _originNft;
+        producerId = _producerId;
     }
 
 
@@ -58,8 +61,9 @@ contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
         // first time to bridge in
         lastObjectId += 1;
 
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(address(this), address(originNft), lastObjectId);
+        uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(address(this), objectOwnership, address(originNft), lastObjectId, producerId);
 
         // link objects_in and objects_out
         tokenIdOut2In[_originTokenId] = mirrorTokenId;

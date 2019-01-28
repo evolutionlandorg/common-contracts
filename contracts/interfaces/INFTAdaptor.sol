@@ -1,15 +1,12 @@
 pragma solidity ^0.4.24;
 
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
-contract INFTAdaptor is ERC721 {
+contract INFTAdaptor {
     function convertTokenId(uint256 _originTokenId) public returns (uint256);
 
     function tokenIdOut2In(uint256 _originTokenId) public view returns (uint256);
 
     function tokenIdIn2Out(uint256 _mirrorTokenId) public view returns (uint256);
-
-    function ownerOf(uint256 _originTokenId) public view returns (address);
 
     function approveOriginToken(address _bridge, uint256 _originTokenId) public;
 
@@ -18,4 +15,6 @@ contract INFTAdaptor is ERC721 {
     function ownerOfMirror(uint256 _mirrorTokenId) public view returns (address);
 
     function isBridged(uint256 _originTokenId) public view returns (bool);
+
+    function tieMirrorTokenToApostle(uint256 _mirrorTokenId, uint256 _apostleTokenId, address _owner) public;
 }
