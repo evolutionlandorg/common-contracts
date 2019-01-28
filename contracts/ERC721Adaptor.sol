@@ -8,7 +8,7 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IInterstellarEncoderV3.sol";
 
 
-contract ERC721Adaptor is INFTAdaptor, PausableDSAuth, SettingIds {
+contract ERC721Adaptor is PausableDSAuth, SettingIds {
 
     /*
      *  Storage
