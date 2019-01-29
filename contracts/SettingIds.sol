@@ -37,6 +37,8 @@ contract SettingIds {
 
     bytes32 public constant CONTRACT_ERC721_BRIDGE = "CONTRACT_ERC721_BRIDGE";
 
+    bytes32 public constant CONTRACT_PET_BASE = "CONTRACT_PET_BASE";
+
     // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
     // this can be considered as transaction fee.
     // Values 0-10,000 map to 0%-100%

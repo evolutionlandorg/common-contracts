@@ -6,6 +6,8 @@ import "./SettingIds.sol";
 import "./interfaces/IInterstellarEncoderV3.sol";
 import "./interfaces/IMintableERC20.sol";
 import "./interfaces/INFTAdaptor.sol";
+import "./interfaces/IPetBase.sol";
+
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
 
@@ -59,16 +61,16 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
 
     function bridgeInAndTie(address _originNftAddress, uint256 _originTokenId, uint256 _apostleTokenId) public {
         uint256 mirrorTokenId = bridgeIn(_originNftAddress, _originTokenId);
-        address adaptor = originNft2Adaptor[_originNftAddress];
-        INFTAdaptor(adaptor).tieMirrorTokenToApostle(mirrorTokenId, _apostleTokenId, msg.sender);
+        address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
+        IPetBase(petBase).tieMirrorTokenToApostle(mirrorTokenId, _apostleTokenId, msg.sender);
     }
 
     // generate new mirror token without origin token frozen
     function bridgeIn(address _originNftAddress, uint256 _originTokenId) public returns (uint256){
 
         address adaptor = originNft2Adaptor[_originNftAddress];
-        require(INFTAdaptor(adaptor).ownerOfOrigin(_originTokenId) == msg.sender, "Invalid owner!");
         require(adaptor != address(0), 'not registered!');
+        require(INFTAdaptor(adaptor).ownerOfOrigin(_originTokenId) == msg.sender, "Invalid owner!");
         uint256 mirrorTokenId = INFTAdaptor(adaptor).tokenIdOut2In(_originTokenId);
 
         // if it is the first time to bridge in
@@ -127,6 +129,19 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         ERC721(nftContractAddress).transferFrom(adaptor, msg.sender, originTokenId);
 
         emit SwapOut(originTokenId, _mirrorTokenId, msg.sender);
+    }
+
+
+    function ownerOf(address _originNftAddress, uint256 _mirrorTokenId) public view returns (address) {
+        IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+        if (interstellarEncoder.getProducerId(_mirrorTokenId) < 128) {
+            return ERC721(objectOwnership).ownerOf(_mirrorTokenId);
+        }
+
+        address adaptor = originNft2Adaptor[_originNftAddress];
+        return INFTAdaptor(adaptor).ownerOfMirror(_mirrorTokenId);
+
     }
 
 
