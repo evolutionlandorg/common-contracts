@@ -23,7 +23,8 @@ contract IInterstellarEncoderV3 {
     function encodeTokenIdForObjectContract(
         address _tokenAddress, address _objectContract, uint128 _objectId) public view returns (uint256 _tokenId);
 
-    function encodeTokenIdForOuterObjectContract(address _objectContract, address nftAddress, address _originNftAddress, uint128 _objectId, uint8 _producerId, uint8 _convertType) public view returns (uint256);
+    function encodeTokenIdForOuterObjectContract(
+        address _objectContract, address nftAddress, address _originNftAddress, uint128 _objectId, uint16 _producerId, uint8 _convertType) public view returns (uint256);
 
     function getContractAddress(uint256 _tokenId) public view returns (address);
 

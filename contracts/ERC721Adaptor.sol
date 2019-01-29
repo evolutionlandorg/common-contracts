@@ -15,7 +15,7 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
     */
     bool private singletonLock = false;
 
-    uint8 public producerId;
+    uint16 public producerId;
 
     uint8 public convertType;
 
@@ -35,7 +35,7 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         singletonLock = true;
     }
 
-    function initializeContract(ISettingsRegistry _registry, ERC721 _originNft, uint8 _producerId) public singletonLockCall {
+    function initializeContract(ISettingsRegistry _registry, ERC721 _originNft, uint16 _producerId) public singletonLockCall {
         owner = msg.sender;
         emit LogSetOwner(msg.sender);
         registry = _registry;
@@ -80,10 +80,6 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
     function cancelApprove(address _bridge) public onlyOwner {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         ERC721(objectOwnership).setApprovalForAll(_bridge, false);
-    }
-
-    function approveOriginToken(address _bridge, uint256 _originTokenId) public auth {
-        ERC721(originNft).approve(_bridge, _originTokenId);
     }
 
     function getObjectClass(uint256 _originTokenId) public view returns (uint8) {
