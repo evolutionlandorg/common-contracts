@@ -15,13 +15,15 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
     */
     bool private singletonLock = false;
 
-    uint16 public producerId;
+    uint8 public producerId;
+
+    uint8 public convertType;
 
     ISettingsRegistry public registry;
 
     ERC721 public originNft;
 
-        // tokenId_outside_evolutionLand => tokenId_inside
+    // tokenId_outside_evolutionLand => tokenId_inside
     mapping(uint256 => uint256) public cachedOriginId2MirrorId;
 
     /*
@@ -33,12 +35,14 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         singletonLock = true;
     }
 
-    function initializeContract(ISettingsRegistry _registry, ERC721 _originNft, uint16 _producerId) public singletonLockCall {
+    function initializeContract(ISettingsRegistry _registry, ERC721 _originNft, uint8 _producerId) public singletonLockCall {
         owner = msg.sender;
         emit LogSetOwner(msg.sender);
         registry = _registry;
         originNft = _originNft;
         producerId = _producerId;
+
+        convertType = 128;  // f(x) = x，fullfill with zero at left side.
     }
 
 
@@ -46,14 +50,14 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         if (cachedOriginId2MirrorId[_originTokenId] > 0) {
             return cachedOriginId2MirrorId[_originTokenId];
         }
-        
+
         uint128 mirrorObjectId = uint128(_originTokenId & 0xffffffffffffffffffffffffffffffff);
 
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
         uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(
-            petBase, objectOwnership, address(originNft), mirrorObjectId, producerId);
+            petBase, objectOwnership, address(originNft), mirrorObjectId, producerId, convertType);
 
         return mirrorTokenId;
     }
@@ -62,6 +66,8 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         return ERC721(originNft).ownerOf(_originTokenId);
     }
 
+    // if the convertion is not calculatable, and need to use cache mapping in Bridge.
+    // then ..
     function toOriginTokenId(uint256 _mirrorTokenId) public view returns (uint256) {
         return (_mirrorTokenId & 0xffffffffffffffffffffffffffffffff);
     }

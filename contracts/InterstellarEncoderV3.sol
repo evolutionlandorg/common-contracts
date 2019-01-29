@@ -21,13 +21,13 @@ contract InterstellarEncoderV3 is IInterstellarEncoderV3, Ownable {
             + (CHAIN_ID << 216) + (uint256(contractId) << 200) + (uint256(_objectClass) << 192) + (CURRENT_LAND << 128) + uint256(_objectId);
     }
 
-    function encodeTokenIdForOuter(address _nftAddress, address _originNftAddress, uint8 _objectClass, uint128 _objectId, uint16 _producerId) public view returns (uint256) {
+    function encodeTokenIdForOuter(address _nftAddress, address _originNftAddress, uint8 _objectClass, uint128 _objectId, uint8 _producerId, uint8 _convertType) public view returns (uint256) {
         uint16 contractId = ownershipAddress2Id[_nftAddress];
         uint16 originContractId = ownershipAddress2Id[_originNftAddress];
         require(contractId > 0 && originContractId > 0 && _producerId > 0, "Contract address does not exist");
 
         uint256 tokenId = (MAGIC_NUMBER << 248) + (CHAIN_ID << 240) + (uint256(contractId) << 224)
-        + (CHAIN_ID << 216) + (uint256(originContractId) << 200) + (uint256(_objectClass) << 192) + (uint256(_producerId) << 128) + uint256(_objectId);
+        + (CHAIN_ID << 216) + (uint256(originContractId) << 200) + (uint256(_objectClass) << 192) + (uint256(_convertType) << 184)+ (uint256(_producerId) << 128) + uint256(_objectId);
 
         return tokenId;
     }
@@ -35,10 +35,10 @@ contract InterstellarEncoderV3 is IInterstellarEncoderV3, Ownable {
     // TODO; newly added
     // @param _tokenAddress - objectOwnership
     // @param _objectContract - xxxBase contract
-    function encodeTokenIdForOuterObjectContract(address _objectContract, address _nftAddress, address _originNftAddress, uint128 _objectId, uint16 _producerId) public view returns (uint256) {
+    function encodeTokenIdForOuterObjectContract(address _objectContract, address _nftAddress, address _originNftAddress, uint128 _objectId, uint8 _producerId, uint8 _convertType) public view returns (uint256) {
         require (classAddress2Id[_objectContract] > 0, "Object class for this object contract does not exist.");
 
-        return encodeTokenIdForOuter(_nftAddress, _originNftAddress, classAddress2Id[_objectContract], _objectId, _producerId);
+        return encodeTokenIdForOuter(_nftAddress, _originNftAddress, classAddress2Id[_objectContract], _objectId, _producerId, _convertType);
 
     }
     // TODO; newly added
