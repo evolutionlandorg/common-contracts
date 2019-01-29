@@ -62,6 +62,10 @@ contract InterstellarEncoderV3 is IInterstellarEncoderV3, Ownable {
         contractId2Address[lastContractId] = _tokenAddress;
     }
 
+    function getProducerId(uint256 _tokenId) public view returns (uint16) {
+        return uint16((_tokenId >> 128) & 0xff);
+    }
+
     function registerNewObjectClass(address _objectContract, uint8 _objectClass) public onlyOwner {
         objectContract2ObjectClass[_objectContract] = _objectClass;
         objectClass2ObjectContract[_objectClass] = _objectContract;

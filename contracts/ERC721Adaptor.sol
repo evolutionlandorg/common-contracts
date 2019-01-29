@@ -62,8 +62,9 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         lastObjectId += 1;
 
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+        address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(address(this), objectOwnership, address(originNft), lastObjectId, producerId);
+        uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(petBase, objectOwnership, address(originNft), lastObjectId, producerId);
 
         // link objects_in and objects_out
         tokenIdOut2In[_originTokenId] = mirrorTokenId;
@@ -125,6 +126,7 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         uint256 mirrorTokenId = tokenIdOut2In[_originTokenId];
         return interstellarEncoder.getObjectClass(mirrorTokenId);
     }
+
 
 
 }

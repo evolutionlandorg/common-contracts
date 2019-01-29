@@ -35,5 +35,8 @@ contract IInterstellarEncoderV3 {
 
     function getObjectAddress(uint256 _tokenId) public view returns (address);
 
+    function getProducerId(uint256 _tokenId) public view returns (uint16);
+
+    function getOriginAddress(uint256 _tokenId) public view returns (address);
 
 }

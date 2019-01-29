@@ -15,6 +15,4 @@ contract INFTAdaptor {
     function ownerOfMirror(uint256 _mirrorTokenId) public view returns (address);
 
     function isBridged(uint256 _originTokenId) public view returns (bool);
-
-    function tieMirrorTokenToApostle(uint256 _mirrorTokenId, uint256 _apostleTokenId, address _owner) public;
 }
