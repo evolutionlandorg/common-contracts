@@ -21,6 +21,9 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
 
     ERC721 public originNft;
 
+        // tokenId_outside_evolutionLand => tokenId_inside
+    mapping(uint256 => uint256) public cachedOriginId2MirrorId;
+
     /*
     *  Modifiers
     */
@@ -40,6 +43,10 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
 
 
     function toMirrorTokenId(uint256 _originTokenId) public view returns (uint256) {
+        if (cachedOriginId2MirrorId[_originTokenId] > 0) {
+            return cachedOriginId2MirrorId[_originTokenId];
+        }
+        
         uint128 mirrorObjectId = uint128(_originTokenId & 0xffffffffffffffffffffffffffffffff);
 
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
@@ -77,5 +84,9 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
         uint256 mirrorTokenId = toMirrorTokenId(_originTokenId);
         return interstellarEncoder.getObjectClass(mirrorTokenId);
+    }
+
+    function cacheMirrorTokenId(uint256 _originTokenId, uint256 _mirrorTokenId) public auth {
+        cachedOriginId2MirrorId[_originTokenId] = _mirrorTokenId;
     }
 }

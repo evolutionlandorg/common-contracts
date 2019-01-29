@@ -12,6 +12,7 @@ contract ERC721AdaptorAuthority {
     function canCall(
         address _src, address _dst, bytes4 _sig
     ) public view returns (bool) {
-        return  ( whiteList[_src] && _sig == bytes4(keccak256("approveOriginToken(address,uint256)")) );
+        return  ( whiteList[_src] && _sig == bytes4(keccak256("approveOriginToken(address,uint256)")) )
+            || ( whiteList[_src] && _sig == bytes4(keccak256("cacheMirrorTokenId(uint256,uint256)")) );
     }
 }

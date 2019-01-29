@@ -31,11 +31,8 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
     // this need to be registered by owner
     mapping(address => address) public originNft2Adaptor;
 
-    // tokenId_outside_evolutionLand => tokenId_inside
-    mapping(uint256 => uint256) public tokenIdOut2In;
-
     // tokenId_inside => tokenId_outside
-    mapping(uint256 => uint256) public tokenIdIn2Out;
+    mapping(uint256 => uint256) public mirrorId2OriginId;
 
     /*
     *  Event
@@ -78,12 +75,10 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
 
         require(INFTAdaptor(adaptor).ownerInOrigin(_originTokenId) == msg.sender, "Invalid owner!");
 
-        uint256 mirrorTokenId = tokenIdOut2In[_originTokenId];
+        uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
 
         // if it is the first time to bridge in
-        if (!isBridged(_originTokenId)) {
-            require(tokenIdOut2In[_originTokenId] == 0, "already exists");
-
+        if (!isBridged(mirrorTokenId)) {
             mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
             // keep new mirror object in this contract
             // before the owner has transferred his/her outerObject into this contract
@@ -92,8 +87,8 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
             IMintableERC20(objectOwnership).mint(adaptor, mirrorTokenId);
 
             // link objects_in and objects_out
-            tokenIdOut2In[_originTokenId] = mirrorTokenId;
-            tokenIdIn2Out[mirrorTokenId] = _originTokenId;
+            INFTAdaptor(adaptor).cacheMirrorTokenId(_originTokenId, mirrorTokenId);
+            mirrorId2OriginId[mirrorTokenId] = _originTokenId;
 
             emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, msg.sender);
         }
@@ -112,7 +107,7 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         INFTAdaptor(adaptor).approveOriginToken(address(this), _originTokenId);
         // mirror token of origin token
         // mirror tokens are kept in address(this)
-        uint256 mirrorTokenId = tokenIdOut2In[_originTokenId];
+        uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
 
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         ERC721(objectOwnership).transferFrom(address(this), msg.sender, mirrorTokenId);
@@ -134,7 +129,7 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         require(ownerOfMirror(_mirrorTokenId) == msg.sender, "you have no right to swap it out!");
 
         // TODO: if it is needed to check its current status
-        uint256 originTokenId = tokenIdIn2Out[_mirrorTokenId];
+        uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         ERC721(objectOwnership).transferFrom(msg.sender, adaptor, _mirrorTokenId);
         ERC721(nftContractAddress).transferFrom(adaptor, msg.sender, originTokenId);
@@ -149,9 +144,12 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
 
     function ownerOfOrigin(uint256 _originTokenId) public view returns (address) {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        uint mirrorTokenId = tokenIdOut2In[_originTokenId];
 
-        address owner = INFTAdaptor(originNft2Adaptor[originOwnershipAddress(mirrorTokenId)]).ownerInOrigin(_originTokenId);
+        INFTAdaptor adapter = INFTAdaptor(originNft2Adaptor[originOwnershipAddress(mirrorTokenId)]);
+
+        uint mirrorTokenId = adapter.toMirrorTokenId(_originTokenId);
+
+        address owner = adapter.ownerInOrigin(_originTokenId);
         if(owner != address(this)) {
             return owner;
         } else {
@@ -165,7 +163,7 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         if(owner != address(this)) {
             return owner;
         } else {
-            uint originTokenId = tokenIdIn2Out[_mirrorTokenId];
+            uint originTokenId = mirrorId2OriginId[_mirrorTokenId];
             return INFTAdaptor(originNft2Adaptor[originOwnershipAddress(_mirrorTokenId)]).ownerInOrigin(originTokenId);
         }
     }
@@ -176,11 +174,7 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         return interstellarEncoder.getContractAddress(_mirrorTokenId);
     }
 
-    function isBridged(uint256 _originTokenId) public view returns (bool) {
-        if (tokenIdOut2In[_originTokenId] != 0) {
-            return true;
-        } else {
-            return false;
-        }
+    function isBridged(uint256 _mirrorTokenId) public view returns (bool) {
+        return (mirrorId2OriginId[_mirrorTokenId] != 0);
     }
 }

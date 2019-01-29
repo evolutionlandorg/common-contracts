@@ -9,4 +9,6 @@ contract INFTAdaptor {
     function approveOriginToken(address _bridge, uint256 _originTokenId) public;
 
     function ownerInOrigin(uint256 _originTokenId) public view returns (address);
+
+    function cacheMirrorTokenId(uint256 _originTokenId, uint256 _mirrorTokenId) public;
 }
