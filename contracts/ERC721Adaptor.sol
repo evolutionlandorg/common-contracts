@@ -21,22 +21,6 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
 
     ERC721 public originNft;
 
-    uint128 public lastObjectId;
-
-    // tokenId_outside_evolutionLand => tokenId_inside
-    mapping(uint256 => uint256) public tokenIdOut2In;
-
-    // tokenId_inside => tokenId_outside
-    mapping(uint256 => uint256) public tokenIdIn2Out;
-
-
-
-    /*
-    *  Event
-    */
-    event BridgeIn(uint256 originTokenId, uint256 mirrorTokenId, address originContract, address owner);
-
-
     /*
     *  Modifiers
     */
@@ -55,31 +39,30 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
     }
 
 
-    function convertTokenId(uint256 _originTokenId) public auth returns (uint256) {
-
-        require(tokenIdOut2In[_originTokenId] == 0, "already exists");
-        // first time to bridge in
-        lastObjectId += 1;
+    function toMirrorTokenId(uint256 _originTokenId) public view returns (uint256) {
+        uint128 mirrorObjectId = uint128(_originTokenId & 0xffffffffffffffffffffffffffffffff);
 
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(petBase, objectOwnership, address(originNft), lastObjectId, producerId);
-
-        // link objects_in and objects_out
-        tokenIdOut2In[_originTokenId] = mirrorTokenId;
-        tokenIdIn2Out[mirrorTokenId] = _originTokenId;
+        uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(
+            petBase, objectOwnership, address(originNft), mirrorObjectId, producerId);
 
         return mirrorTokenId;
+    }
 
+    function ownerInOrigin(uint256 _originTokenId) public view returns (address) {
+        return ERC721(originNft).ownerOf(_originTokenId);
+    }
 
+    function toOriginTokenId(uint256 _mirrorTokenId) public view returns (uint256) {
+        return (_mirrorTokenId & 0xffffffffffffffffffffffffffffffff);
     }
 
     function approveToBridge(address _bridge) public onlyOwner {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         ERC721(objectOwnership).setApprovalForAll(_bridge, true);
     }
-
 
     function cancelApprove(address _bridge) public onlyOwner {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
@@ -90,43 +73,9 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         ERC721(originNft).approve(_bridge, _originTokenId);
     }
 
-    function ownerOfOrigin(uint256 _originTokenId) public view returns (address) {
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        address owner = ERC721(originNft).ownerOf(_originTokenId);
-        if(owner != address(this)) {
-            return owner;
-        } else {
-            uint mirrorTokenId = tokenIdIn2Out[_originTokenId];
-            return ERC721(objectOwnership).ownerOf(mirrorTokenId);
-        }
-    }
-
-    function ownerOfMirror(uint256 _mirrorTokenId) public view returns (address) {
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        address owner = ERC721(objectOwnership).ownerOf(_mirrorTokenId);
-        if(owner != address(this)) {
-            return owner;
-        } else {
-            uint originTokenId = tokenIdIn2Out[_mirrorTokenId];
-            return originNft.ownerOf(originTokenId);
-        }
-    }
-
-
-    function isBridged(uint256 _originTokenId) public view returns (bool) {
-        if (tokenIdOut2In[_originTokenId] != 0) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     function getObjectClass(uint256 _originTokenId) public view returns (uint8) {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        uint256 mirrorTokenId = tokenIdOut2In[_originTokenId];
+        uint256 mirrorTokenId = toMirrorTokenId(_originTokenId);
         return interstellarEncoder.getObjectClass(mirrorTokenId);
     }
-
-
-
 }
