@@ -54,4 +54,6 @@ contract SettingIds {
     // set refererCut to 4%
     // refererCut = 400;
     bytes32 public constant UINT_REFERER_CUT = "UINT_REFERER_CUT";
+
+    bytes32 public constant CONTRACT_LAND_RESOURCE = "CONTRACT_LAND_RESOURCE";
 }
