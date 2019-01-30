@@ -16,8 +16,6 @@ contract IInterstellarEncoderV3 {
 
     function registerNewObjectClass(address _objectContract, uint8 objectClass) public;
 
-    function registerNewTokenContract(address _tokenAddress) public;
-
     function encodeTokenId(address _tokenAddress, uint8 _objectClass, uint128 _objectIndex) public view returns (uint256 _tokenId);
 
     function encodeTokenIdForObjectContract(
