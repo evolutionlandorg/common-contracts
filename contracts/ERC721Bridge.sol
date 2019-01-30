@@ -144,8 +144,8 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         emit SwapOut(originTokenId, _mirrorTokenId, msg.sender);
     }
 
-    function approveOriginToken(address _originNft, address _approved, uint256 _originTokenId) public auth {
-        ERC721(_originNft).approve(_approved, _originTokenId);
+    function approveOriginToken(address _originNFT, address _approved, uint256 _originTokenId) public auth {
+        ERC721(_originNFT).approve(_approved, _originTokenId);
     }
 
     function ownerOf(uint256 _mirrorTokenId) public view returns (address) {
@@ -153,19 +153,10 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
     }
 
     // return human owner of the token
-    function ownerOfOrigin(uint256 _originTokenId) public view returns (address) {
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+    function mirrorOfOrigin(address _originNFT, uint256 _originTokenId) public view returns (uint256) {
+        INFTAdaptor adapter = INFTAdaptor(originNFT2Adaptor[_originNFT]);
 
-        INFTAdaptor adapter = INFTAdaptor(originNFT2Adaptor[originOwnershipAddress(mirrorTokenId)]);
-
-        uint mirrorTokenId = adapter.toMirrorTokenId(_originTokenId);
-
-        address owner = adapter.ownerInOrigin(_originTokenId);
-        if(owner != address(this)) {
-            return owner;
-        } else {
-            return ERC721(objectOwnership).ownerOf(mirrorTokenId);
-        }
+        return adapter.toMirrorTokenId(_originTokenId);
     }
 
     // return human owner of the token
