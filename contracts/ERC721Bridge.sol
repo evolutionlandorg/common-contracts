@@ -6,7 +6,6 @@ import "./SettingIds.sol";
 import "./interfaces/IInterstellarEncoderV3.sol";
 import "./interfaces/IMintableERC20.sol";
 import "./interfaces/INFTAdaptor.sol";
-// import "./interfaces/IPetBase.sol";
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
@@ -69,12 +68,22 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
     //     IPetBase(petBase).tieMirrorTokenToApostle(mirrorTokenId, _apostleTokenId, msg.sender);
     // }
 
+    // used by PetBase
+    function bridgeInAuth(address _originNftAddress, uint256 _originTokenId, address _owner) public auth returns (uint256) {
+        _bridgeIn(_originNftAddress, _originTokenId, _owner);
+    }
+
+
     // generate new mirror token without origin token frozen
     function bridgeIn(address _originNftAddress, uint256 _originTokenId) public returns (uint256) {
+        _bridgeIn(_originNftAddress, _originTokenId, msg.sender);
+    }
+
+    function _bridgeIn(address _originNftAddress, uint256 _originTokenId, address _owner) internal returns (uint256) {
         address adaptor = originNFT2Adaptor[_originNftAddress];
         require(adaptor != address(0), "Not registered!");
 
-        require(INFTAdaptor(adaptor).ownerInOrigin(_originTokenId) == msg.sender, "Invalid owner!");
+        require(INFTAdaptor(adaptor).ownerInOrigin(_originTokenId) == _owner, "Invalid owner!");
 
         uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
 
@@ -90,7 +99,7 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
             INFTAdaptor(adaptor).cacheMirrorTokenId(_originTokenId, mirrorTokenId);
             mirrorId2OriginId[mirrorTokenId] = _originTokenId;
 
-            emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, msg.sender);
+            emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, _owner);
         }
 
         return mirrorTokenId;

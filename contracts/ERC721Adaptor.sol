@@ -68,7 +68,7 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
 
     // if the convertion is not calculatable, and need to use cache mapping in Bridge.
     // then ..
-    function toOriginTokenId(uint256 _mirrorTokenId) public view returns (uint256) {
+    function toOriginTokenId(uint256 _mirrorTokenId) public pure returns (uint256) {
         return (_mirrorTokenId & 0xffffffffffffffffffffffffffffffff);
     }
 

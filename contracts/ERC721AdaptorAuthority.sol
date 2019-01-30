@@ -4,7 +4,7 @@ contract ERC721AdaptorAuthority {
     mapping (address => bool) public whiteList;
 
     constructor(address[] _whitelists) public {
-        for (uint i = 0; i < _whitelists.length; i ++) {
+        for (uint i = 0; i < _whitelists.length; i++) {
             whiteList[_whitelists[i]] = true;
         }
     }
