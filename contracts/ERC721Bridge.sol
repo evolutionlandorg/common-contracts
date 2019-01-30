@@ -70,7 +70,7 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
 
     // used by PetBase
     function bridgeInAuth(address _originNftAddress, uint256 _originTokenId, address _owner) public auth returns (uint256) {
-        _bridgeIn(_originNftAddress, _originTokenId, _owner);
+        return _bridgeIn(_originNftAddress, _originTokenId, _owner);
     }
 
 
@@ -174,7 +174,7 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
     function originOwnershipAddress(uint256 _mirrorTokenId) public view returns (address) {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
 
-        return interstellarEncoder.getContractAddress(_mirrorTokenId);
+        return interstellarEncoder.getOriginAddress(_mirrorTokenId);
     }
 
     function isBridged(uint256 _mirrorTokenId) public view returns (bool) {
