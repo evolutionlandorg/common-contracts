@@ -6,7 +6,6 @@ import "./SettingIds.sol";
 import "./interfaces/IInterstellarEncoderV3.sol";
 import "./interfaces/IMintableERC20.sol";
 import "./interfaces/INFTAdaptor.sol";
-
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
 
@@ -34,8 +33,8 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
     mapping(uint256 => uint256) public mirrorId2OriginId;
 
     /*
-    *  Event
-    */
+     *  Event
+     */
     event BridgeIn(uint256 originTokenId, uint256 mirrorTokenId, address originContract, address adaptorAddress, address owner);
 
     event SwapIn(uint256 originTokenId, uint256 mirrorTokenId, address owner);
@@ -60,13 +59,6 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
     function registerAdaptor(address _originNftAddress, address _erc721Adaptor) public whenNotPaused onlyOwner {
         originNFT2Adaptor[_originNftAddress] = _erc721Adaptor;
     }
-
-    // TODO: move this to PetBase.
-    // function bridgeInAndTie(address _originNftAddress, uint256 _originTokenId, uint256 _apostleTokenId) public {
-    //     uint256 mirrorTokenId = bridgeIn(_originNftAddress, _originTokenId);
-    //     address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
-    //     IPetBase(petBase).tieMirrorTokenToApostle(mirrorTokenId, _apostleTokenId, msg.sender);
-    // }
 
     // used by PetBase
     function bridgeInAuth(address _originNftAddress, uint256 _originTokenId, address _owner) public auth returns (uint256) {
