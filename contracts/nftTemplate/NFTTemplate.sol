@@ -6,13 +6,19 @@ import "../interfaces/ISettingsRegistry.sol";
 import "../DSAuth.sol";
 import "../SettingIds.sol";
 import "../StringUtil.sol";
-import "../interfaces/IInterstellarEncoderV3.sol";
+import "./interfaces/IEncoder.sol";
 
 
-contract NFTTemplate is ERC721Token, DSAuth, SettingIds {
+contract NFTTemplate is ERC721Token("Evolution Land Objects","EVO"), DSAuth, SettingIds {
     using StringUtil for *;
 
-    IInterstellarEncoderV3 encoder;
+    IEncoder public encoder;
+
+    // (objectClass => producerId => objectId))
+    mapping(uint8 => mapping(uint256 => uint128)) public identifier2ObjectId;
+    // (objectClass => (producerId => objectId))
+    mapping(uint8 => mapping(uint256 => address)) public allowedIdentifier;
+
 
     // https://docs.opensea.io/docs/2-adding-metadata
     string public baseTokenURI;
@@ -22,9 +28,49 @@ contract NFTTemplate is ERC721Token, DSAuth, SettingIds {
      */
 
     event SetEncoder(address _oldEncoder, address _newEncoder);
+    event NFTOnChain(address _operator, uint256 _tokenId, address _owner, uint256 _mark);
+    event CustomNFTOnChain(address _operator, uint256 _tokenId, address _owner, uint256 _mark);
 
-    constructor (string _name, string _symbol, IInterstellarEncoderV3 _encoder) ERC721Token(_name, _symbol) public {
+    constructor (IEncoder _encoder) public {
         encoder = _encoder;
+    }
+
+    function publishOnChainAuth(uint8 _objectClass, uint256 _producerId, address _user, uint256 _mark) public auth {
+        require(allowedIdentifier[_objectClass][_producerId] == msg.sender, "you are not allowed to touch the fields");
+        require(identifier2ObjectId[_objectClass][_producerId] < 340282366920938463463374607431768211455, "overflow");
+        identifier2ObjectId[_objectClass][_producerId] += 1;
+        uint128 objectId =  identifier2ObjectId[_objectClass][_producerId];
+        uint256 tokenId = encoder.encodeTokenIdAuth(address(this), _objectClass, _producerId, objectId);
+
+        _mint(_user, tokenId);
+
+        emit CustomNFTOnChain(msg.sender, tokenId, _user, _mark);
+    }
+
+
+    function publishOnChain(address _user, uint256 _mark) public {
+        uint8 objectClass = encoder.OBJECT_CLASS();
+        uint256 producerId = encoder.CURRENT_LAND();
+        require(identifier2ObjectId[objectClass][producerId] < 340282366920938463463374607431768211455, "overflow");
+
+        identifier2ObjectId[objectClass][producerId] += 1;
+        uint128 objectId =  identifier2ObjectId[objectClass][producerId];
+        uint256 tokenId = encoder.encodeTokenId(address(this), objectId);
+
+        _mint(_user, tokenId);
+
+        emit NFTOnChain(msg.sender, tokenId, _user, _mark);
+    }
+
+    function setAllowedIdentifier(uint8 _objectClass, uint256 _producerId, address _operator) onlyOwner {
+        allowedIdentifier[_objectClass][_producerId] = _operator;
+    }
+
+    function setEncoder(IEncoder _newEncoder) public onlyOwner {
+        address oldEncoder = address(encoder);
+        encoder = _newEncoder;
+
+        emit SetEncoder(oldEncoder, address(encoder));
     }
 
 
@@ -36,12 +82,6 @@ contract NFTTemplate is ERC721Token, DSAuth, SettingIds {
         return super.tokenURI(_tokenId);
     }
 
-    function setEncoder(IInterstellarEncoderV3 _newEncoder) public auth {
-        address oldEncoder = address(encoder);
-        encoder = _newEncoder;
-
-        emit SetEncoder(oldEncoder, address(encoder));
-    }
 
     function setTokenURI(uint256 _tokenId, string _uri) public auth {
         _setTokenURI(_tokenId, _uri);
@@ -51,19 +91,6 @@ contract NFTTemplate is ERC721Token, DSAuth, SettingIds {
         baseTokenURI = _newBaseTokenURI;
     }
 
-    function mintObject(address _to, uint128 _objectId) public auth returns (uint256 _tokenId) {
-
-        _tokenId = encoder.encodeTokenIdForObjectContract(
-            address(this), msg.sender, _objectId);
-        super._mint(_to, _tokenId);
-    }
-
-    function burnObject(address _to, uint128 _objectId) public auth returns (uint256 _tokenId) {
-
-        _tokenId = encoder.encodeTokenIdForObjectContract(
-            address(this), msg.sender, _objectId);
-        super._burn(_to, _tokenId);
-    }
 
     function mint(address _to, uint256 _tokenId) public auth {
         super._mint(_to, _tokenId);
