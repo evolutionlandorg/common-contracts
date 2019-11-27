@@ -3,7 +3,6 @@ pragma solidity ^0.4.24;
 import "./DSAuth.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/ISettingsRegistry.sol";
-import "./interfaces/ERC223.sol";
 import "./SettingIds.sol";
 
 contract TokenBurnDrop is DSAuth, SettingIds {
@@ -14,6 +13,8 @@ contract TokenBurnDrop is DSAuth, SettingIds {
     event BurndropTokens(address indexed token, address indexed owner, uint amount, bytes data);
 
     ISettingsRegistry public registry;
+
+    byte public SS58_PREFIX_DARWINIA = 0x2a;
 
     function initializeContract(address _registry) public onlyOwner{
         registry = ISettingsRegistry(_registry);
@@ -26,21 +27,31 @@ contract TokenBurnDrop is DSAuth, SettingIds {
     * @param _data - data which indicate the operations.
     */
     function tokenFallback(address _from, uint256 _amount, bytes _data) public {
+        bytes32 darwiniaAddress;
+
+        assembly {
+            let ptr := mload(0x40)
+            calldatacopy(ptr, 0, calldatasize)
+            darwiniaAddress := mload(add(ptr, 133))
+        }
+
         address ring = registry.addressOf(SettingIds.CONTRACT_RING_ERC20_TOKEN);
         address kryptonite = registry.addressOf(SettingIds.CONTRACT_KTON_ERC20_TOKEN);
 
         require((msg.sender == ring) || (msg.sender == kryptonite), "Permission denied");
 
-        require(_data.length == 32, "The address (Darwinia Network) must be in a 64-bit hexadecimal format");
+        require(_data.length == 33, "The address (Darwinia Network) must be in a 33 bytes hexadecimal format");
+        require(byte(_data[0]) == SS58_PREFIX_DARWINIA, "Darwinia Network Address ss58 prefix is 42");
+        require(darwiniaAddress != bytes32(0x0), "Darwinia Network Address can't be empty");
 
         //  burndrop ring
         if(ring == msg.sender) {
-            ERC223(ring).transfer(address(0), _amount);
+            ERC20(ring).transfer(address(0), _amount);
         }
 
         //  burndrop kton
         if (kryptonite == msg.sender) {
-            ERC223(kryptonite).transfer(address(0), _amount);
+            ERC20(kryptonite).transfer(address(0), _amount);
         }
 
         emit BurndropTokens(msg.sender, _from, _amount, _data);
