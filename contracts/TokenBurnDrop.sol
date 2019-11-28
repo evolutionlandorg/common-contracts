@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./DSAuth.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "./interfaces/IBurnableERC20.sol";
 import "./interfaces/ISettingsRegistry.sol";
 import "./SettingIds.sol";
 
@@ -10,7 +11,9 @@ contract TokenBurnDrop is DSAuth, SettingIds {
     event ClaimedTokens(address indexed token, address indexed owner, uint amount);
 
     // burndropTokens event
-    event BurndropTokens(address indexed token, address indexed owner, uint amount, bytes data);
+    event RingBurndropTokens(address indexed token, address indexed owner, uint amount, bytes data);
+
+    event KtonBurndropTokens(address indexed token, address indexed owner, uint amount, bytes data);
 
     ISettingsRegistry public registry;
 
@@ -46,15 +49,15 @@ contract TokenBurnDrop is DSAuth, SettingIds {
 
         //  burndrop ring
         if(ring == msg.sender) {
-            ERC20(ring).transfer(address(0), _amount);
+            IBurnableERC20(ring).burn(address(this), _amount);
+            emit RingBurndropTokens(msg.sender, _from, _amount, _data);
         }
 
         //  burndrop kton
         if (kryptonite == msg.sender) {
-            ERC20(kryptonite).transfer(address(0), _amount);
+            IBurnableERC20(kryptonite).burn(address(this), _amount);
+            emit KtonBurndropTokens(msg.sender, _from, _amount, _data);
         }
-
-        emit BurndropTokens(msg.sender, _from, _amount, _data);
     }
 
     /// @notice This method can be used by the owner to extract mistakenly
