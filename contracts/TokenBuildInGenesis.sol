@@ -60,7 +60,7 @@ contract TokenBuildInGenesis is DSAuth, SettingIds {
 
         require((msg.sender == ring) || (msg.sender == kryptonite), "Permission denied");
 
-        require(_data.length == 32, "The address (Darwinia Network) must be in a 33 bytes hexadecimal format");
+        require(_data.length == 32, "The address (Darwinia Network) must be in a 32 bytes hexadecimal format");
         require(darwiniaAddress != bytes32(0x0), "Darwinia Network Address can't be empty");
 
         //  burndrop ring
