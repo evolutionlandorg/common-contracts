@@ -95,4 +95,8 @@ contract TokenBuildInGenesis is DSAuth, SettingIds {
     function setPaused(bool _status) public auth {
         paused = _status;
     }
+
+    function togglePaused() public auth {
+        paused = !paused;
+    }
 }
