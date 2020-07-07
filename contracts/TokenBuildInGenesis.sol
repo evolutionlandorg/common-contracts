@@ -99,4 +99,8 @@ contract TokenBuildInGenesis is DSAuth, SettingIds {
     function togglePaused() public auth {
         paused = !paused;
     }
+
+    function setRegistry(address _registry) public auth {
+        registry = ISettingsRegistry(_registry);
+    }
 }
