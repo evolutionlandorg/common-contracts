@@ -19,11 +19,11 @@ contract MintAndBurnAuthority is DSAuth {
         ( allowList[_src] && _sig == bytes4(keccak256("burn(address,uint256)")) );
     }
 
-    function addAllowList(address allowAddress) public onlyOwner{
+    function addAllowAddress(address allowAddress) public onlyOwner{
         allowList[allowAddress] = true;
     }
 
-    function removeAllowList(address allowAddress) public onlyOwner{
+    function removeAllowAddress(address allowAddress) public onlyOwner{
         allowList[allowAddress] = false;
     }
 }
