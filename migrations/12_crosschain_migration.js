@@ -21,15 +21,15 @@ module.exports = async (deployer, network, accounts) => {
     let issuing = await Issuing.new(params[network].settingsRegistry)
     // let issuing = await Issuing.at('xxx')
     console.log('issuing.address: ', issuing.address)
-
+    // return
     // set ring authrity
     let registry = await ISettingsRegistry.at(params[network].settingsRegistry)
 
-    //  UINT_ISSUING_FEE
-    await registry.setUintProperty('0x55494e545f49535355494e475f46454500000000000000000000000000000000', web3.utils.toWei('2'))
+    //  UINT_BRIDGE_FEE
+    await registry.setUintProperty('0x55494e545f4252494447455f4645450000000000000000000000000000000000', web3.utils.toWei('2'))
 
-    //  CONTRACT_ISSUING_POOL
-    await registry.setAddressProperty('0x434f4e54524143545f49535355494e475f504f4f4c0000000000000000000000', '0x7f5B598827359939606B3525712Fb124A1C7851d')
+    //  CONTRACT_BRIDGE_POOL
+    await registry.setAddressProperty('0x434f4e54524143545f4252494447455f504f4f4c000000000000000000000000', '0x7f5B598827359939606B3525712Fb124A1C7851d')
     console.log('set registry success')
 
     await issuing.addSupportedTokens(params[network].ring);

@@ -17,7 +17,7 @@ contract Issuing is PausableDSAuth {
         address indexed token,
         address indexed from,
         uint256 amount,
-        bytes data
+        bytes receiver
     );
 
     ISettingsRegistry public registry;
@@ -58,13 +58,13 @@ contract Issuing is PausableDSAuth {
             "Darwinia Network Address can't be empty"
         );
 
-        // SettingIds.UINT_ISSUING_FEE
-        uint256 issuingFee = registry.uintOf(
-            0x55494e545f49535355494e475f46454500000000000000000000000000000000
+        // SettingIds.UINT_BRIDGE_FEE
+        uint256 bridgeFee = registry.uintOf(
+            0x55494e545f4252494447455f4645450000000000000000000000000000000000
         );
 
-        // SettingIds.CONTRACT_ISSUING_POOL
-        address issuingPool = registry.addressOf(
+        // SettingIds.CONTRACT_BRIDGE_POOL
+        address bridgePool = registry.addressOf(
             0x434f4e54524143545f49535355494e475f504f4f4c0000000000000000000000
         );
 
@@ -73,10 +73,10 @@ contract Issuing is PausableDSAuth {
             0x434f4e54524143545f52494e475f45524332305f544f4b454e00000000000000
         );
 
-        // IssuingFee will be paid to the relayer
-        if (issuingFee > 0) {
+        // BridgeFee will be paid to the relayer
+        if (bridgeFee > 0) {
             require(
-                ERC20(ring).transferFrom(_from, issuingPool, issuingFee),
+                ERC20(ring).transferFrom(_from, bridgePool, bridgeFee),
                 "Error when paying transaction fees"
             );
         }
