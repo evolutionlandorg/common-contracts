@@ -65,7 +65,7 @@ contract Issuing is PausableDSAuth {
 
         // SettingIds.CONTRACT_BRIDGE_POOL
         address bridgePool = registry.addressOf(
-            0x434f4e54524143545f49535355494e475f504f4f4c0000000000000000000000
+            0x434f4e54524143545f4252494447455f504f4f4c000000000000000000000000
         );
 
         // SettingIds.CONTRACT_RING_ERC20_TOKEN
