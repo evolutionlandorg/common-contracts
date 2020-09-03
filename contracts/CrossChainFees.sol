@@ -6,12 +6,27 @@ import "./interfaces/IBurnableERC20.sol";
 import "./interfaces/ISettingsRegistry.sol";
 
 contract CrossChainFees is DSAuth {
-    event CrossChainTxFee(address indexed from, uint indexed fee, address indexed sender, address token, uint value);
+    event CrossChainTxFee(
+        address indexed from,
+        uint256 fee,
+        address indexed token,
+        uint256 value
+    );
 
     // claimedToken event
-    event ClaimedTokens(address indexed token, address indexed owner, uint amount);
+    event ClaimedTokens(
+        address indexed token,
+        address indexed owner,
+        uint256 amount
+    );
 
     event SetStatus(bool status);
+
+    event SetFee(uint256 fee);
+
+    event AddChannel(address channel);
+
+    event RemoveChannel(address channel);
 
     ISettingsRegistry public registry;
 
@@ -19,7 +34,9 @@ contract CrossChainFees is DSAuth {
 
     bool private singletonLock = false;
 
-    uint public transactionFee = 100000000000000000000;
+    uint256 public transactionFee;
+
+    mapping(address => bool) public channel;
 
     modifier singletonLockCall() {
         require(!singletonLock, "Only can call once");
@@ -32,23 +49,42 @@ contract CrossChainFees is DSAuth {
         _;
     }
 
-    function initializeContract(address _registry, bool _status) public singletonLockCall{
+    function initializeContract(
+        address _registry,
+        uint256 _transactionFee,
+        bool _status
+    ) public singletonLockCall {
         registry = ISettingsRegistry(_registry);
         paused = _status;
+        transactionFee = _transactionFee;
         owner = msg.sender;
     }
 
-    function setFee(uint _fee) public auth {
+    function setFee(uint256 _fee) public auth {
         require(_fee >= 0, "The cost must be a positive number or 0");
         transactionFee = _fee;
+        emit SetFee(_fee);
     }
 
-    function payTxFees(address _token, address _from, uint _value) public isWork{
+    /// The contract in the channel calls this method to pay the cross-chain
+    /// transfer fee, the fee token is RING
+    function payTxFees(address _from, uint256 _value) public isWork {
+        require(
+            channel[msg.sender],
+            "CrossChainFees::payTxFees: Call must come from channels."
+        );
         // SettingIds.CONTRACT_RING_ERC20_TOKEN
-        address ring = registry.addressOf(0x434f4e54524143545f52494e475f45524332305f544f4b454e00000000000000);
-        ERC20 ringToken = ERC20(ring);
-        require(ringToken.transferFrom(_from, address(this), transactionFee), "Error when paying transaction fees");
-        emit CrossChainTxFee(_from, transactionFee, msg.sender, _token, _value);
+        address ring = registry.addressOf(
+            0x434f4e54524143545f52494e475f45524332305f544f4b454e00000000000000
+        );
+        if (transactionFee > 0) {
+            ERC20 ringToken = ERC20(ring);
+            require(
+                ringToken.transferFrom(_from, address(this), transactionFee),
+                "Error when paying transaction fees"
+            );
+        }
+        emit CrossChainTxFee(_from, transactionFee, msg.sender, _value);
     }
 
     /// @notice This method can be used by the owner to extract mistakenly
@@ -61,7 +97,7 @@ contract CrossChainFees is DSAuth {
             return;
         }
         ERC20 token = ERC20(_token);
-        uint balance = token.balanceOf(address(this));
+        uint256 balance = token.balanceOf(address(this));
         token.transfer(owner, balance);
 
         emit ClaimedTokens(_token, owner, balance);
@@ -74,9 +110,20 @@ contract CrossChainFees is DSAuth {
 
     function togglePaused() public auth {
         paused = !paused;
+        emit SetStatus(paused);
     }
 
     function setRegistry(address _registry) public auth {
         registry = ISettingsRegistry(_registry);
+    }
+
+    function addChannel(address _channel) public auth {
+        channel[_channel] = true;
+        emit AddChannel(_channel);
+    }
+
+    function removeChannel(address _channel) public auth {
+        channel[_channel] = false;
+        emit RemoveChannel(_channel);
     }
 }
