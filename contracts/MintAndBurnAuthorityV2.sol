@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-contract MintAndBurnAuthority {
+contract MintAndBurnAuthorityV2 {
 
     mapping (address => bool) public allowList;
 
