@@ -7,3 +7,5 @@ contracts-flattener
 truffle.js
 truffle.config.js
 scripts
+waffle.json
+cache
