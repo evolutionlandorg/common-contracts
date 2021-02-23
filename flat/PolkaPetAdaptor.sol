@@ -468,7 +468,141 @@ contract IInterstellarEncoderV3 {
 
 }
 
-// Root file: contracts/ERC721Adaptor.sol
+// Dependency file: contracts/interfaces/IERC165.sol
+
+// SPDX-License-Identifier: MIT
+
+// pragma solidity ^0.4.24;
+
+/**
+ * @dev Interface of the ERC165 standard, as defined in the
+ * https://eips.ethereum.org/EIPS/eip-165[EIP].
+ *
+ * Implementers can declare support of contract interfaces, which can then be
+ * queried by others ({ERC165Checker}).
+ *
+ * For an implementation, see {ERC165}.
+ */
+contract IERC165 {
+    /**
+     * @dev Returns true if this contract implements the interface defined by
+     * `interfaceId`. See the corresponding
+     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+     * to learn more about how these ids are created.
+     *
+     * This function call must use less than 30 000 gas.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+
+// Dependency file: contracts/interfaces/IERC1155.sol
+
+
+// pragma solidity ^0.4.24;
+
+// import "contracts/interfaces/IERC165.sol";
+
+/**
+ * @dev Required interface of an ERC1155 compliant contract, as defined in the
+ * https://eips.ethereum.org/EIPS/eip-1155[EIP].
+ *
+ * _Available since v3.1._
+ */
+contract IERC1155 is IERC165 {
+    /**
+     * @dev Emitted when `value` tokens of token type `id` are transferred from `from` to `to` by `operator`.
+     */
+    event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
+
+    /**
+     * @dev Equivalent to multiple {TransferSingle} events, where `operator`, `from` and `to` are the same for all
+     * transfers.
+     */
+    event TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values);
+
+    /**
+     * @dev Emitted when `account` grants or revokes permission to `operator` to transfer their tokens, according to
+     * `approved`.
+     */
+    event ApprovalForAll(address indexed account, address indexed operator, bool approved);
+
+    /**
+     * @dev Emitted when the URI for token type `id` changes to `value`, if it is a non-programmatic URI.
+     *
+     * If an {URI} event was emitted for `id`, the standard
+     * https://eips.ethereum.org/EIPS/eip-1155#metadata-extensions[guarantees] that `value` will equal the value
+     * returned by {IERC1155MetadataURI-uri}.
+     */
+    event URI(string value, uint256 indexed id);
+
+    /**
+     * @dev Returns the amount of tokens of token type `id` owned by `account`.
+     *
+     * Requirements:
+     *
+     * - `account` cannot be the zero address.
+     */
+    function balanceOf(address account, uint256 id) external view returns (uint256);
+
+    /**
+     * @dev xref:ROOT:erc1155.adoc#batch-operations[Batched] version of {balanceOf}.
+     *
+     * Requirements:
+     *
+     * - `accounts` and `ids` must have the same length.
+     */
+    function balanceOfBatch(address[] accounts, uint256[] ids) external view returns (uint256[] memory);
+
+    /**
+     * @dev Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`,
+     *
+     * Emits an {ApprovalForAll} event.
+     *
+     * Requirements:
+     *
+     * - `operator` cannot be the caller.
+     */
+    function setApprovalForAll(address operator, bool approved) external;
+
+    /**
+     * @dev Returns true if `operator` is approved to transfer ``account``'s tokens.
+     *
+     * See {setApprovalForAll}.
+     */
+    function isApprovedForAll(address account, address operator) external view returns (bool);
+
+    /**
+     * @dev Transfers `amount` tokens of token type `id` from `from` to `to`.
+     *
+     * Emits a {TransferSingle} event.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     * - If the caller is not `from`, it must be have been approved to spend ``from``'s tokens via {setApprovalForAll}.
+     * - `from` must have a balance of tokens of type `id` of at least `amount`.
+     * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155Received} and return the
+     * acceptance magic value.
+     */
+    function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data) external;
+
+    /**
+     * @dev xref:ROOT:erc1155.adoc#batch-operations[Batched] version of {safeTransferFrom}.
+     *
+     * Emits a {TransferBatch} event.
+     *
+     * Requirements:
+     *
+     * - `ids` and `amounts` must have the same length.
+     * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
+     * acceptance magic value.
+     */
+    function safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[] amounts, bytes data) external;
+}
+
+
+// Root file: contracts/PolkaPetAdaptor.sol
 
 pragma solidity ^0.4.24;
 
@@ -476,11 +610,14 @@ pragma solidity ^0.4.24;
 // import "contracts/PausableDSAuth.sol";
 // import "contracts/interfaces/ISettingsRegistry.sol";
 // import "contracts/interfaces/INFTAdaptor.sol";
-// import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+// // import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 // import "contracts/interfaces/IInterstellarEncoderV3.sol";
+// import "contracts/interfaces/IERC1155.sol";
 
 
-contract ERC721Adaptor is PausableDSAuth, SettingIds {
+contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
+
+	event SetTokenIDAuth(uint256 indexed tokenId, bool status);
 
     /*
      *  Storage
@@ -493,10 +630,12 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
 
     ISettingsRegistry public registry;
 
-    ERC721 public originNft;
+    IERC1155 public originNft;
 
-    // tokenId_outside_evolutionLand => tokenId_inside
-    mapping(uint256 => uint256) public cachedOriginId2MirrorId;
+	uint128 public lastObjectId;
+
+	// tokenID => bool allowList
+    mapping (uint256 => bool) public allowList;
 
     /*
     *  Modifiers
@@ -507,7 +646,7 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         singletonLock = true;
     }
 
-    function initializeContract(ISettingsRegistry _registry, ERC721 _originNft, uint16 _producerId) public singletonLockCall {
+    function initializeContract(ISettingsRegistry _registry, IERC1155 _originNft, uint16 _producerId) public singletonLockCall {
         owner = msg.sender;
         emit LogSetOwner(msg.sender);
         registry = _registry;
@@ -517,14 +656,16 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
         convertType = 128;  // f(x) = x，fullfill with zero at left side.
     }
 
+	function setTokenIDAuth(uint256 _tokenId, bool _status) public auth {
+		allowList[_tokenId] = _status;
+		emit SetTokenIDAuth(_tokenId, _status);	
+	}
 
-    function toMirrorTokenId(uint256 _originTokenId) public view returns (uint256) {
-        if (cachedOriginId2MirrorId[_originTokenId] > 0) {
-            return cachedOriginId2MirrorId[_originTokenId];
-        }
-
-        uint128 mirrorObjectId = uint128(_originTokenId & 0xffffffffffffffffffffffffffffffff);
-
+    function toMirrorTokenIdAndIncrease(uint256 _originTokenId) public returns (uint256) {
+		require(allowList[_originTokenId], "POLKPET: PERMISSION");
+        lastObjectId += 1;
+        uint128 mirrorObjectId = uint128(lastObjectId & 0xffffffffffffffffffffffffffffffff);
+		require(lastObjectId <= uint128(-1), "POLKPET: OBJECTID_OVERFLOW");
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
@@ -535,32 +676,30 @@ contract ERC721Adaptor is PausableDSAuth, SettingIds {
     }
 
     function ownerInOrigin(uint256 _originTokenId) public view returns (address) {
-        return ERC721(originNft).ownerOf(_originTokenId);
+		revert("NOT_SUPPORT");
     }
 
     // if the convertion is not calculatable, and need to use cache mapping in Bridge.
     // then ..
     function toOriginTokenId(uint256 _mirrorTokenId) public view returns (uint256) {
-        return (_mirrorTokenId & 0xffffffffffffffffffffffffffffffff);
+		revert("NOT_SUPPORT");
     }
 
     function approveToBridge(address _bridge) public onlyOwner {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        ERC721(objectOwnership).setApprovalForAll(_bridge, true);
+        IERC1155(objectOwnership).setApprovalForAll(_bridge, true);
     }
 
     function cancelApprove(address _bridge) public onlyOwner {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        ERC721(objectOwnership).setApprovalForAll(_bridge, false);
+        IERC1155(objectOwnership).setApprovalForAll(_bridge, false);
     }
 
     function getObjectClass(uint256 _originTokenId) public view returns (uint8) {
-        IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        uint256 mirrorTokenId = toMirrorTokenId(_originTokenId);
-        return interstellarEncoder.getObjectClass(mirrorTokenId);
+		revert("NOT_SUPPORT");
     }
 
     function cacheMirrorTokenId(uint256 _originTokenId, uint256 _mirrorTokenId) public auth {
-        cachedOriginId2MirrorId[_originTokenId] = _mirrorTokenId;
+		revert("NOT_SUPPORT");
     }
 }

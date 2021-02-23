@@ -298,6 +298,14 @@ contract IMintableERC20 {
     function mint(address _to, uint256 _value) public;
 }
 
+// Dependency file: contracts/interfaces/IBurnableERC20.sol
+
+// pragma solidity ^0.4.23;
+
+contract IBurnableERC20 {
+    function burn(address _from, uint _value) public;
+}
+
 // Dependency file: contracts/interfaces/INFTAdaptor.sol
 
 // pragma solidity ^0.4.24;
@@ -477,7 +485,141 @@ contract ERC721 is ERC721Basic, ERC721Enumerable, ERC721Metadata {
 }
 
 
-// Root file: contracts/ERC721Bridge.sol
+// Dependency file: contracts/interfaces/IERC165.sol
+
+// SPDX-License-Identifier: MIT
+
+// pragma solidity ^0.4.24;
+
+/**
+ * @dev Interface of the ERC165 standard, as defined in the
+ * https://eips.ethereum.org/EIPS/eip-165[EIP].
+ *
+ * Implementers can declare support of contract interfaces, which can then be
+ * queried by others ({ERC165Checker}).
+ *
+ * For an implementation, see {ERC165}.
+ */
+contract IERC165 {
+    /**
+     * @dev Returns true if this contract implements the interface defined by
+     * `interfaceId`. See the corresponding
+     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+     * to learn more about how these ids are created.
+     *
+     * This function call must use less than 30 000 gas.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+
+// Dependency file: contracts/interfaces/IERC1155.sol
+
+
+// pragma solidity ^0.4.24;
+
+// import "contracts/interfaces/IERC165.sol";
+
+/**
+ * @dev Required interface of an ERC1155 compliant contract, as defined in the
+ * https://eips.ethereum.org/EIPS/eip-1155[EIP].
+ *
+ * _Available since v3.1._
+ */
+contract IERC1155 is IERC165 {
+    /**
+     * @dev Emitted when `value` tokens of token type `id` are transferred from `from` to `to` by `operator`.
+     */
+    event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
+
+    /**
+     * @dev Equivalent to multiple {TransferSingle} events, where `operator`, `from` and `to` are the same for all
+     * transfers.
+     */
+    event TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values);
+
+    /**
+     * @dev Emitted when `account` grants or revokes permission to `operator` to transfer their tokens, according to
+     * `approved`.
+     */
+    event ApprovalForAll(address indexed account, address indexed operator, bool approved);
+
+    /**
+     * @dev Emitted when the URI for token type `id` changes to `value`, if it is a non-programmatic URI.
+     *
+     * If an {URI} event was emitted for `id`, the standard
+     * https://eips.ethereum.org/EIPS/eip-1155#metadata-extensions[guarantees] that `value` will equal the value
+     * returned by {IERC1155MetadataURI-uri}.
+     */
+    event URI(string value, uint256 indexed id);
+
+    /**
+     * @dev Returns the amount of tokens of token type `id` owned by `account`.
+     *
+     * Requirements:
+     *
+     * - `account` cannot be the zero address.
+     */
+    function balanceOf(address account, uint256 id) external view returns (uint256);
+
+    /**
+     * @dev xref:ROOT:erc1155.adoc#batch-operations[Batched] version of {balanceOf}.
+     *
+     * Requirements:
+     *
+     * - `accounts` and `ids` must have the same length.
+     */
+    function balanceOfBatch(address[] accounts, uint256[] ids) external view returns (uint256[] memory);
+
+    /**
+     * @dev Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`,
+     *
+     * Emits an {ApprovalForAll} event.
+     *
+     * Requirements:
+     *
+     * - `operator` cannot be the caller.
+     */
+    function setApprovalForAll(address operator, bool approved) external;
+
+    /**
+     * @dev Returns true if `operator` is approved to transfer ``account``'s tokens.
+     *
+     * See {setApprovalForAll}.
+     */
+    function isApprovedForAll(address account, address operator) external view returns (bool);
+
+    /**
+     * @dev Transfers `amount` tokens of token type `id` from `from` to `to`.
+     *
+     * Emits a {TransferSingle} event.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     * - If the caller is not `from`, it must be have been approved to spend ``from``'s tokens via {setApprovalForAll}.
+     * - `from` must have a balance of tokens of type `id` of at least `amount`.
+     * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155Received} and return the
+     * acceptance magic value.
+     */
+    function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes data) external;
+
+    /**
+     * @dev xref:ROOT:erc1155.adoc#batch-operations[Batched] version of {safeTransferFrom}.
+     *
+     * Emits a {TransferBatch} event.
+     *
+     * Requirements:
+     *
+     * - `ids` and `amounts` must have the same length.
+     * - If `to` refers to a smart contract, it must implement {IERC1155Receiver-onERC1155BatchReceived} and return the
+     * acceptance magic value.
+     */
+    function safeBatchTransferFrom(address from, address to, uint256[] ids, uint256[] amounts, bytes data) external;
+}
+
+
+// Root file: contracts/ERC721BridgeV2.sol
 
 pragma solidity ^0.4.23;
 
@@ -486,8 +628,10 @@ pragma solidity ^0.4.23;
 // import "contracts/SettingIds.sol";
 // import "contracts/interfaces/IInterstellarEncoderV3.sol";
 // import "contracts/interfaces/IMintableERC20.sol";
+// import "contracts/interfaces/IBurnableERC20.sol";
 // import "contracts/interfaces/INFTAdaptor.sol";
 // import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+// import "contracts/interfaces/IERC1155.sol";
 
 
 /*
@@ -495,7 +639,7 @@ pragma solidity ^0.4.23;
  * originTokenId - token outside evolutionLand
  * mirrorTokenId - mirror token
  */
-contract ERC721Bridge is SettingIds, PausableDSAuth {
+contract ERC721BridgeV2 is SettingIds, PausableDSAuth {
 
     /*
      *  Storage
@@ -600,6 +744,21 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         swapIn(_originNftAddress, _originTokenId);
     }
 
+	// V2 add - Support PolkaPet
+    function bridgeAndSwapIn1155(address _originNftAddress, uint256 _originTokenId) public {
+        address adaptor = originNFT2Adaptor[_originNftAddress];
+        require(adaptor != address(0), "Not registered!");
+
+        IERC1155(_originNftAddress).safeTransferFrom(msg.sender, address(this), _originTokenId, 1, "");
+
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+        uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenIdAndIncrease(_originTokenId);
+		IMintableERC20(objectOwnership).mint(msg.sender, mirrorTokenId);
+		mirrorId2OriginId[mirrorTokenId] = _originTokenId;
+		emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, msg.sender);
+        emit SwapIn(_originTokenId, mirrorTokenId, msg.sender);
+    }
+
     function swapOut(uint256 _mirrorTokenId) public  {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
         address nftContract = interstellarEncoder.getContractAddress(_mirrorTokenId);
@@ -611,8 +770,15 @@ contract ERC721Bridge is SettingIds, PausableDSAuth {
         // TODO: if it is needed to check its current status
         uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        ERC721(objectOwnership).transferFrom(msg.sender, address(this), _mirrorTokenId);
-        ERC721(nftContract).transferFrom(address(this), msg.sender, originTokenId);
+
+		// V2 add - Support PolkaPet
+		if (IERC1155(nftContract).supportsInterface(bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes)")))) {
+			IBurnableERC20(objectOwnership).burn(msg.sender, _mirrorTokenId);
+			IERC1155(nftContract).safeTransferFrom(address(this), msg.sender, originTokenId, 1, "");
+		} else {
+			ERC721(objectOwnership).transferFrom(msg.sender, address(this), _mirrorTokenId);
+			ERC721(nftContract).transferFrom(address(this), msg.sender, originTokenId);
+		}
 
         emit SwapOut(originTokenId, _mirrorTokenId, msg.sender);
     }
