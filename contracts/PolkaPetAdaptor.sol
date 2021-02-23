@@ -31,23 +31,14 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
 	// tokenID => bool allowList
     mapping (uint256 => bool) public allowList;
 
-    /*
-    *  Modifiers
-    */
-    modifier singletonLockCall() {
-        require(!singletonLock, "Only can call once");
-        _;
-        singletonLock = true;
-    }
-
-    function initializeContract(ISettingsRegistry _registry, IERC1155 _originNft, uint16 _producerId) public singletonLockCall {
-        owner = msg.sender;
-        emit LogSetOwner(msg.sender);
+    function constructor(ISettingsRegistry _registry, IERC1155 _originNft, uint16 _producerId) public {
         registry = _registry;
         originNft = _originNft;
         producerId = _producerId;
-
         convertType = 128;  // f(x) = x，fullfill with zero at left side.
+
+		allowList[2] = true;
+		allowList[11] = true;
     }
 
 	function setTokenIDAuth(uint256 _tokenId, bool _status) public auth {
