@@ -619,6 +619,67 @@ contract IERC1155 is IERC165 {
 }
 
 
+// Dependency file: contracts/interfaces/IERC1155Receiver.sol
+
+
+// pragma solidity ^0.4.24;
+
+/**
+ * _Available since v3.1._
+ */
+contract IERC1155Receiver {
+
+    bytes4 internal constant ERC1155_RECEIVED_VALUE = 0xf23a6e61;
+    bytes4 internal constant ERC1155_BATCH_RECEIVED_VALUE = 0xbc197c81;
+
+    /**
+        @dev Handles the receipt of a single ERC1155 token type. This function is
+        called at the end of a `safeTransferFrom` after the balance has been updated.
+        To accept the transfer, this must return
+        `bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))`
+        (i.e. 0xf23a6e61, or its own function selector).
+        @param operator The address which initiated the transfer (i.e. msg.sender)
+        @param from The address which previously owned the token
+        @param id The ID of the token being transferred
+        @param value The amount of tokens being transferred
+        @param data Additional data with no specified format
+        @return `bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"))` if transfer is allowed
+    */
+    function onERC1155Received(
+        address operator,
+        address from,
+        uint256 id,
+        uint256 value,
+        bytes data
+    )
+        external
+        returns(bytes4);
+
+    /**
+        @dev Handles the receipt of a multiple ERC1155 token types. This function
+        is called at the end of a `safeBatchTransferFrom` after the balances have
+        been updated. To accept the transfer(s), this must return
+        `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))`
+        (i.e. 0xbc197c81, or its own function selector).
+        @param operator The address which initiated the batch transfer (i.e. msg.sender)
+        @param from The address which previously owned the token
+        @param ids An array containing ids of each token being transferred (order and length must match values array)
+        @param values An array containing amounts of each token being transferred (order and length must match ids array)
+        @param data Additional data with no specified format
+        @return `bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"))` if transfer is allowed
+    */
+    function onERC1155BatchReceived(
+        address operator,
+        address from,
+        uint256[] ids,
+        uint256[] values,
+        bytes data
+    )
+        external
+        returns(bytes4);
+}
+
+
 // Root file: contracts/ERC721BridgeV2.sol
 
 pragma solidity ^0.4.23;
@@ -632,6 +693,7 @@ pragma solidity ^0.4.23;
 // import "contracts/interfaces/INFTAdaptor.sol";
 // import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 // import "contracts/interfaces/IERC1155.sol";
+// import "contracts/interfaces/IERC1155Receiver.sol";
 
 
 /*
@@ -639,7 +701,7 @@ pragma solidity ^0.4.23;
  * originTokenId - token outside evolutionLand
  * mirrorTokenId - mirror token
  */
-contract ERC721BridgeV2 is SettingIds, PausableDSAuth {
+contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
 
     /*
      *  Storage
@@ -728,21 +790,6 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth {
         swapIn(_originNftAddress, _originTokenId);
     }
 
-	// V2 add - Support PolkaPet
-    function bridgeAndSwapIn1155(address _originNftAddress, uint256 _originTokenId) public {
-        address adaptor = originNFT2Adaptor[_originNftAddress];
-        require(adaptor != address(0), "Not registered!");
-
-        IERC1155(_originNftAddress).safeTransferFrom(msg.sender, address(this), _originTokenId, 1, "");
-
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenIdAndIncrease(_originTokenId);
-		IMintableERC20(objectOwnership).mint(msg.sender, mirrorTokenId);
-		mirrorId2OriginId[mirrorTokenId] = _originTokenId;
-		emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, msg.sender);
-        emit SwapIn(_originTokenId, mirrorTokenId, msg.sender);
-    }
-
     function swapOut(uint256 _mirrorTokenId) public  {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
         address nftContract = interstellarEncoder.getContractAddress(_mirrorTokenId);
@@ -803,4 +850,52 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth {
     function isBridged(uint256 _mirrorTokenId) public view returns (bool) {
         return (mirrorId2OriginId[_mirrorTokenId] != 0);
     }
+
+
+	// V2 add - Support PolkaPet
+	function _bridgeIn1155(address _originNftAddress, uint256 _originTokenId, address _from, uint256 _value) private {
+        address adaptor = originNFT2Adaptor[msg.sender];
+        require(adaptor != address(0), "Not registered!");
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+		for (uint256 i = 0; i < _value; i++) {
+			uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenIdAndIncrease(_originTokenId);
+			IMintableERC20(objectOwnership).mint(_from, mirrorTokenId);
+			mirrorId2OriginId[mirrorTokenId] = _originTokenId;
+			emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, _from);
+			emit SwapIn(_originTokenId, mirrorTokenId, _from);
+		}
+	}
+
+    function onERC1155Received(
+        address operator,
+        address from,
+        uint256 id,
+        uint256 value,
+        bytes data
+    )
+		whenNotPaused()
+        external
+        returns(bytes4)
+	{
+		_bridgeIn1155(msg.sender, id, from, value);
+		return ERC1155_RECEIVED_VALUE; 
+	}
+
+    function onERC1155BatchReceived(
+        address operator,
+        address from,
+        uint256[] ids,
+        uint256[] values,
+        bytes data
+    )
+		whenNotPaused()
+        external
+        returns(bytes4)
+	{
+        require(ids.length == values.length, "INVALID_ARRAYS_LENGTH");
+        for (uint256 i = 0; i < ids.length; i++) {
+			_bridgeIn1155(msg.sender, ids[i], from, values[i]);
+        }
+		return ERC1155_BATCH_RECEIVED_VALUE;	
+	}
 }
