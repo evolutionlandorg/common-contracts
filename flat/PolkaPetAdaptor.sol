@@ -637,7 +637,7 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
 	// tokenID => bool allowList
     mapping (uint256 => bool) public allowList;
 
-    function constructor(ISettingsRegistry _registry, IERC1155 _originNft, uint16 _producerId) public {
+    constructor(ISettingsRegistry _registry, IERC1155 _originNft, uint16 _producerId) public {
         registry = _registry;
         originNft = _originNft;
         producerId = _producerId;
