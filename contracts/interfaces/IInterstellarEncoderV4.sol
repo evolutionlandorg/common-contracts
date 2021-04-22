@@ -1,11 +1,9 @@
 pragma solidity ^0.4.24;
 
-contract IInterstellarEncoderV3 {
+contract IInterstellarEncoderV4 {
     uint256 constant CLEAR_HIGH =  0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff;
 
     uint256 public constant MAGIC_NUMBER = 42;    // Interstellar Encoding Magic Number.
-    uint256 public constant CHAIN_ID = 1; // Ethereum mainet.
-    uint256 public constant CURRENT_LAND = 1; // 1 is Atlantis, 0 is NaN.
 
     enum ObjectClass { 
         NaN,
