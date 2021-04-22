@@ -10,3 +10,4 @@ scripts
 waffle.json
 cache
 /out
+/flat
