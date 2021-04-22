@@ -1,3 +1,6 @@
 [submodule "lib/upgradeability-using-unstructured-storage"]
 	path = lib/upgradeability-using-unstructured-storage
 	url = https://github.com/evolutionlandorg/upgradeability-using-unstructured-storage
+[submodule "lib/zeppelin-solidity"]
+	path = lib/zeppelin-solidity
+	url = https://github.com/OpenZeppelin/zeppelin-solidity
