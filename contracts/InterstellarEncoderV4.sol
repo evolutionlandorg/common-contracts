@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "./interfaces/IInterstellarEncoderV3.sol";
+import "./interfaces/IInterstellarEncoderV4.sol";
 
 // TODO: upgrade.
-contract InterstellarEncoderV3 is IInterstellarEncoderV3, Ownable {
+contract InterstellarEncoderV4 is IInterstellarEncoderV4, Ownable {
 
     // [magic_number, chain_id, contract_id <2>, origin_chain_id, origin_contract_id<2>, object_class, convert_type, <6>, land, <128>]
     mapping(uint8 => address) public ownershipId2Address;
