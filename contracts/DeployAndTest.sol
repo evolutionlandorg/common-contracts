@@ -2,7 +2,7 @@ pragma solidity ^0.4.23;
 
 import "./StandardERC223.sol";
 import "./SettingsRegistry.sol";
-import "@evolutionland/upgraeability-using-unstructured-storage/contracts/OwnedUpgradeabilityProxy.sol";
+// import "@evolutionland/upgraeability-using-unstructured-storage/contracts/OwnedUpgradeabilityProxy.sol";
 import "./MintAndBurnAuthority.sol";
 
 contract DeployAndTest {
