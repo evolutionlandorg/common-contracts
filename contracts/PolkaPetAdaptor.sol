@@ -60,13 +60,13 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
         return mirrorTokenId;
     }
 
-    function ownerInOrigin(uint256 _originTokenId) public view returns (address) {
+    function ownerInOrigin(uint256 /*_originTokenId*/) public pure returns (address) {
 		revert("NOT_SUPPORT");
     }
 
     // if the convertion is not calculatable, and need to use cache mapping in Bridge.
     // then ..
-    function toOriginTokenId(uint256 _mirrorTokenId) public view returns (uint256) {
+    function toOriginTokenId(uint256 /*_mirrorTokenId*/) public pure returns (uint256) {
 		revert("NOT_SUPPORT");
     }
 
@@ -80,11 +80,11 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
         IERC1155(objectOwnership).setApprovalForAll(_bridge, false);
     }
 
-    function getObjectClass(uint256 _originTokenId) public view returns (uint8) {
+    function getObjectClass(uint256 /*_originTokenId*/) public pure returns (uint8) {
 		revert("NOT_SUPPORT");
     }
 
-    function cacheMirrorTokenId(uint256 _originTokenId, uint256 _mirrorTokenId) public auth {
+    function cacheMirrorTokenId(uint256 /*_originTokenId*/, uint256 /*_mirrorTokenId*/) public view auth {
 		revert("NOT_SUPPORT");
     }
 }

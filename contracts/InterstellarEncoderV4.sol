@@ -18,7 +18,7 @@ contract InterstellarEncoderV4 is IInterstellarEncoderV4, Ownable {
     uint256 public CURRENT_LAND; // 1 is Atlantis, 0 is NaN.
 
 
-    constructor(uint256 _chainId, uint256 _currenLand) {
+    constructor(uint256 _chainId, uint256 _currenLand) public {
        CHAIN_ID = _chainId; 
        CURRENT_LAND = _currenLand;
     }

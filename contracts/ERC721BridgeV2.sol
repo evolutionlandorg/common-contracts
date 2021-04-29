@@ -193,11 +193,11 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
 	}
 
     function onERC1155Received(
-        address operator,
+        address /*operator*/,
         address from,
         uint256 id,
         uint256 value,
-        bytes data
+        bytes /*data*/
     )
 		whenNotPaused()
         external
@@ -208,11 +208,11 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
 	}
 
     function onERC1155BatchReceived(
-        address operator,
+        address /*operator*/,
         address from,
         uint256[] ids,
         uint256[] values,
-        bytes data
+        bytes /*data*/
     )
 		whenNotPaused()
         external

@@ -98,7 +98,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         return tokenId2UseStatus[_tokenId].user;
     }
 
-    function receiveApproval(address _from, uint _tokenId, bytes _data) public {
+    function receiveApproval(address _from, uint _tokenId, bytes /*_data*/) public {
         if(msg.sender == registry.addressOf(CONTRACT_OBJECT_OWNERSHIP)) {
             uint256 duration;
             uint256 price;
@@ -191,7 +191,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
     //TODO: allow batch operation
-    function tokenFallback(address _from, uint256 _value, bytes _data) public {
+    function tokenFallback(address _from, uint256 _value, bytes /*_data*/) public {
         address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
         if(ring == msg.sender) {
             uint256 tokenId;

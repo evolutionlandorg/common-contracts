@@ -11,7 +11,7 @@ contract TokenLocationAuthority {
     }
 
     function canCall(
-        address _src, address _dst, bytes4 _sig
+        address _src, address /*_dst*/, bytes4 _sig
     ) public view returns (bool) {
         return ( whiteList[_src] && _sig == bytes4(keccak256("setTokenLocationHM(uint256,int256,int256)"))) ;
     }
