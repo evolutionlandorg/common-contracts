@@ -1,13 +1,4 @@
-build
 .DS_Store
-node_modules
-package-lock.json
 .idea
-contracts-flattener
-truffle.js
-truffle.config.js
-scripts
-waffle.json
-cache
 /out
 /flat

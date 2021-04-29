@@ -3,5 +3,5 @@
 
 ## Installing
 ```sh
-npm install @evolutionland/common
+dapp install evolutionlandorg/common-contracts
 ```
