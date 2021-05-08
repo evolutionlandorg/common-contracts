@@ -291,7 +291,7 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
     }
 
 
-    function _removeTokenUse(uint256 _tokenId) public {
+    function _removeTokenUse(uint256 _tokenId) internal {
 
         address owner = tokenId2UseStatus[_tokenId].owner;
         address user = tokenId2UseStatus[_tokenId].user;
