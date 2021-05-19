@@ -202,10 +202,10 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
         uint256 value,
         bytes data
     )
-		whenNotPaused()
+	whenNotPaused()
         external
         returns(bytes4)
-	{
+    {
         require(value == 1, "Value should be one");
         uint256 mirrorTokenId = _bridgeIn1155(msg.sender, id, from);
         if (data.length == 32) {
@@ -218,8 +218,8 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
             address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
             IPetBase(petBase).tiePetTokenToApostle(mirrorTokenId, apostleTokenId);
         }
-		return ERC1155_RECEIVED_VALUE; 
-	}
+	return ERC1155_RECEIVED_VALUE; 
+    }
 
     function onERC1155BatchReceived(
         address,
@@ -231,7 +231,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
         external
         returns(bytes4) 
     {
-		revert("NOT_SUPPORT");
-		return ERC1155_RECEIVED_VALUE; 
+	revert("NOT_SUPPORT");
+	return ERC1155_RECEIVED_VALUE; 
     }
 }
