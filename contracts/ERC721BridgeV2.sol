@@ -109,7 +109,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
 
     function swapOut(uint256 _mirrorTokenId) public  {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        address nftContract = interstellarEncoder.getContractAddress(_mirrorTokenId);
+        address nftContract = interstellarEncoder.getOriginAddress(_mirrorTokenId);
         require(nftContract != address(0), "No such NFT contract");
         address adaptor = originNFT2Adaptor[nftContract];
         require(adaptor != address(0), "not registered!");
@@ -123,25 +123,6 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
         ERC721(objectOwnership).transferFrom(msg.sender, address(this), _mirrorTokenId);
         ERC721(nftContract).transferFrom(address(this), msg.sender, originTokenId);
 
-        emit SwapOut(originTokenId, _mirrorTokenId, msg.sender);
-    }
-
-	// V2 add - Support PolkaPet
-    function swapOut1155(uint256 _mirrorTokenId) public  {
-        IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        address nftContract = interstellarEncoder.getOriginAddress(_mirrorTokenId);
-        require(nftContract != address(0), "No such NFT contract");
-        address adaptor = originNFT2Adaptor[nftContract];
-        require(adaptor != address(0), "not registered!");
-        require(ownerOfMirror(_mirrorTokenId) == msg.sender, "you have no right to swap it out!");
-
-        address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
-        (uint256 apostleTokenId,) = IPetBase(petBase).pet2TiedStatus(_mirrorTokenId);
-        require(apostleTokenId == 0, "Pet has been tied.");
-        uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-		IBurnableERC20(objectOwnership).burn(msg.sender, _mirrorTokenId);
-		IERC1155(nftContract).safeTransferFrom(address(this), msg.sender, originTokenId, 1, "");
         emit SwapOut(originTokenId, _mirrorTokenId, msg.sender);
     }
 
