@@ -220,4 +220,18 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
         }
 		return ERC1155_RECEIVED_VALUE; 
 	}
+
+    function onERC1155BatchReceived(
+        address,
+        address,
+        uint256[],
+        uint256[],
+        bytes
+    )
+        external
+        returns(bytes4) 
+    {
+		revert("NOT_SUPPORT");
+		return ERC1155_RECEIVED_VALUE; 
+    }
 }
