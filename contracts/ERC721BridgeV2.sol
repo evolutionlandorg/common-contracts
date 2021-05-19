@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./PausableDSAuth.sol";
 import "./interfaces/ISettingsRegistry.sol";
@@ -10,6 +10,7 @@ import "./interfaces/INFTAdaptor.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IERC1155.sol";
 import "./interfaces/IERC1155Receiver.sol";
+import "./interfaces/IPetBase.sol";
 
 
 /*
@@ -114,7 +115,9 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
         require(adaptor != address(0), "not registered!");
         require(ownerOfMirror(_mirrorTokenId) == msg.sender, "you have no right to swap it out!");
 
-        // TODO: if it is needed to check its current status
+        address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
+        (uint256 apostleTokenId,) = IPetBase(petBase).pet2TiedStatus(_mirrorTokenId);
+        require(apostleTokenId == 0, "Pet has been tied.");
         uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         ERC721(objectOwnership).transferFrom(msg.sender, address(this), _mirrorTokenId);
@@ -132,7 +135,9 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
         require(adaptor != address(0), "not registered!");
         require(ownerOfMirror(_mirrorTokenId) == msg.sender, "you have no right to swap it out!");
 
-        // TODO: if it is needed to check its current status
+        address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
+        (uint256 apostleTokenId,) = IPetBase(petBase).pet2TiedStatus(_mirrorTokenId);
+        require(apostleTokenId == 0, "Pet has been tied.");
         uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
 		IBurnableERC20(objectOwnership).burn(msg.sender, _mirrorTokenId);
@@ -177,19 +182,17 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
         return (mirrorId2OriginId[_mirrorTokenId] != 0);
     }
 
-
 	// V2 add - Support PolkaPet
-	function _bridgeIn1155(address _originNftAddress, uint256 _originTokenId, address _from, uint256 _value) private {
+	function _bridgeIn1155(address _originNftAddress, uint256 _originTokenId, address _from) private returns (uint256) {
         address adaptor = originNFT2Adaptor[msg.sender];
         require(adaptor != address(0), "Not registered!");
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-		for (uint256 i = 0; i < _value; i++) {
-			uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenIdAndIncrease(_originTokenId);
-			IMintableERC20(objectOwnership).mint(_from, mirrorTokenId);
-			mirrorId2OriginId[mirrorTokenId] = _originTokenId;
-			emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, _from);
-			emit SwapIn(_originTokenId, mirrorTokenId, _from);
-		}
+        uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenIdAndIncrease(_originTokenId);
+        IMintableERC20(objectOwnership).mint(_from, mirrorTokenId);
+        mirrorId2OriginId[mirrorTokenId] = _originTokenId;
+        emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, _from);
+        emit SwapIn(_originTokenId, mirrorTokenId, _from);
+        return mirrorTokenId;
 	}
 
     function onERC1155Received(
@@ -197,31 +200,24 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
         address from,
         uint256 id,
         uint256 value,
-        bytes /*data*/
+        bytes data
     )
 		whenNotPaused()
         external
         returns(bytes4)
 	{
-		_bridgeIn1155(msg.sender, id, from, value);
-		return ERC1155_RECEIVED_VALUE; 
-	}
-
-    function onERC1155BatchReceived(
-        address /*operator*/,
-        address from,
-        uint256[] ids,
-        uint256[] values,
-        bytes /*data*/
-    )
-		whenNotPaused()
-        external
-        returns(bytes4)
-	{
-        require(ids.length == values.length, "INVALID_ARRAYS_LENGTH");
-        for (uint256 i = 0; i < ids.length; i++) {
-			_bridgeIn1155(msg.sender, ids[i], from, values[i]);
+        require(value == 1, "Value should be one");
+        uint256 mirrorTokenId = _bridgeIn1155(msg.sender, id, from);
+        if (data.length == 32) {
+            uint256 apostleTokenId;
+            assembly {
+                let ptr := mload(0x40)
+                calldatacopy(ptr, 0, calldatasize)
+                apostleTokenId := mload(add(ptr, 196))
+            }
+            address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
+            IPetBase(petBase).tiePetTokenToApostle(mirrorTokenId, apostleTokenId);
         }
-		return ERC1155_BATCH_RECEIVED_VALUE;	
+		return ERC1155_RECEIVED_VALUE; 
 	}
 }
