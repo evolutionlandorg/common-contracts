@@ -8,6 +8,7 @@ import "./interfaces/IMintableERC20.sol";
 import "./interfaces/IBurnableERC20.sol";
 import "./interfaces/INFTAdaptor.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol";
 import "./interfaces/IERC1155.sol";
 import "./interfaces/IERC1155Receiver.sol";
 import "./interfaces/IPetBase.sol";
@@ -18,7 +19,7 @@ import "./interfaces/IPetBase.sol";
  * originTokenId - token outside evolutionLand
  * mirrorTokenId - mirror token
  */
-contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
+contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155Receiver {
 
     /*
      *  Storage
@@ -195,6 +196,19 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC1155Receiver {
 			emit SwapIn(_originTokenId, mirrorTokenId, _from);
 		}
 	}
+
+    function onERC721Received(
+      address /*_operator*/,
+      address /*_from*/,
+      uint256 _tokenId,
+      bytes /*_data*/
+    )
+      public
+      returns(bytes4) 
+    {
+        bridgeAndSwapIn(msg.sender, _tokenId);
+        return ERC721_RECEIVED;
+    }
 
     function onERC1155Received(
         address /*operator*/,
