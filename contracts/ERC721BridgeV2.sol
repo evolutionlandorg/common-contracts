@@ -49,65 +49,6 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         originNFT2Adaptor[_originNftAddress] = _erc721Adaptor;
     }
 
-    // used by PetBase
-    function bridgeInAuth(address _originNftAddress, uint256 _originTokenId, address _owner) public auth returns (uint256) {
-        return _bridgeIn(_originNftAddress, _originTokenId, _owner);
-    }
-
-
-    // generate new mirror token without origin token frozen
-    function bridgeIn(address _originNftAddress, uint256 _originTokenId) public returns (uint256) {
-        _bridgeIn(_originNftAddress, _originTokenId, msg.sender);
-    }
-
-    function _bridgeIn(address _originNftAddress, uint256 _originTokenId, address _owner) internal returns (uint256) {
-        address adaptor = originNFT2Adaptor[_originNftAddress];
-        require(adaptor != address(0), "Not registered!");
-
-        require(INFTAdaptor(adaptor).ownerInOrigin(_originTokenId) == _owner, "Invalid owner!");
-
-        uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
-
-        // if it is the first time to bridge in
-        if (!isBridged(mirrorTokenId)) {
-            // keep new mirror object in this contract
-            // before the owner has transferred his/her outerObject into this contract
-            // mirror object can not be transferred
-            address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-            IMintableERC20(objectOwnership).mint(address(this), mirrorTokenId);
-
-            // link objects_in and objects_out
-            INFTAdaptor(adaptor).cacheMirrorTokenId(_originTokenId, mirrorTokenId);
-            mirrorId2OriginId[mirrorTokenId] = _originTokenId;
-
-            emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, _owner);
-        }
-
-        return mirrorTokenId;
-    }
-
-    // freeze origin token to free mirror token
-    function swapIn(address _originNftAddress, uint256 _originTokenId) public {
-        require(ERC721(_originNftAddress).ownerOf(_originTokenId) == msg.sender, "Invalid owner!");
-
-        address adaptor = originNFT2Adaptor[_originNftAddress];
-        require(adaptor != address(0), "Not registered!");
-
-        // all specific originTokens are kept in bridge
-        ERC721(_originNftAddress).transferFrom(msg.sender, address(this), _originTokenId);
-
-        uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        ERC721(objectOwnership).transferFrom(address(this), msg.sender, mirrorTokenId);
-
-        emit SwapIn(_originTokenId, mirrorTokenId, msg.sender);
-    }
-
-    function bridgeAndSwapIn(address _originNftAddress, uint256 _originTokenId) public {
-        bridgeIn(_originNftAddress, _originTokenId);
-        swapIn(_originNftAddress, _originTokenId);
-    }
-
     function swapOut(uint256 _mirrorTokenId) public  {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
         address nftContract = interstellarEncoder.getContractAddress(_mirrorTokenId);
@@ -146,10 +87,6 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         emit SwapOut(originTokenId, _mirrorTokenId, msg.sender);
     }
 
-    function approveOriginToken(address _originNFT, address _approved, uint256 _originTokenId) public auth {
-        ERC721(_originNFT).approve(_approved, _originTokenId);
-    }
-
     function ownerOf(uint256 _mirrorTokenId) public view returns (address) {
         return ownerOfMirror(_mirrorTokenId);
     }
@@ -185,7 +122,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
 
 	// V2 add - Support PolkaPet
 	function _bridgeIn1155(address _originNftAddress, uint256 _originTokenId, address _from, uint256 _value) private {
-        address adaptor = originNFT2Adaptor[msg.sender];
+        address adaptor = originNFT2Adaptor[_originNftAddress];
         require(adaptor != address(0), "Not registered!");
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
 		for (uint256 i = 0; i < _value; i++) {
@@ -197,16 +134,32 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
 		}
 	}
 
+    function _bridgeIn721(address _originNftAddress, uint256 _originTokenId, address _owner) private {
+        address adaptor = originNFT2Adaptor[_originNftAddress];
+        require(adaptor != address(0), "Not registered!");
+        uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
+        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
+        if (!isBridged(mirrorTokenId)) {
+            IMintableERC20(objectOwnership).mint(address(this), mirrorTokenId);
+            INFTAdaptor(adaptor).cacheMirrorTokenId(_originTokenId, mirrorTokenId);
+            mirrorId2OriginId[mirrorTokenId] = _originTokenId;
+            emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, _owner);
+        }
+        ERC721(objectOwnership).transferFrom(address(this), _owner, mirrorTokenId);
+        emit SwapIn(_originTokenId, mirrorTokenId, _owner);
+    }
+
     function onERC721Received(
       address /*_operator*/,
-      address /*_from*/,
+      address _from,
       uint256 _tokenId,
       bytes /*_data*/
     )
-      public
+      whenNotPaused()
+      public 
       returns(bytes4) 
     {
-        bridgeAndSwapIn(msg.sender, _tokenId);
+        _bridgeIn721(msg.sender, _tokenId, _from);
         return ERC721_RECEIVED;
     }
 
