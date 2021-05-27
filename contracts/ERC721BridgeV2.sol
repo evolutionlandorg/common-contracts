@@ -51,7 +51,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
 
     function swapOut(uint256 _mirrorTokenId) public  {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
-        address nftContract = interstellarEncoder.getContractAddress(_mirrorTokenId);
+        address nftContract = interstellarEncoder.getOriginAddress(_mirrorTokenId);
         require(nftContract != address(0), "No such NFT contract");
         address adaptor = originNFT2Adaptor[nftContract];
         require(adaptor != address(0), "not registered!");
