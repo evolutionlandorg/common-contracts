@@ -3,12 +3,12 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
-import "./interfaces/ERC223.sol";
 import "./interfaces/ITokenUse.sol";
 import "./interfaces/IActivity.sol";
 import "./interfaces/ISettingsRegistry.sol";
 import "./interfaces/IInterstellarEncoder.sol";
 import "./interfaces/IActivityObject.sol";
+import "./interfaces/IRevenuePool.sol";
 import "./SettingIds.sol";
 import "./DSAuth.sol";
 
@@ -165,8 +165,9 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
         ERC20(ring).transferFrom(
             msg.sender, tokenId2UseOffer[_tokenId].owner, expense.sub(cut));
 
-        ERC223(ring).transferFrom(
-            msg.sender, registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(msg.sender));
+        address pool = registry.addressOf(CONTRACT_REVENUE_POOL);
+        ERC20(ring).approve(pool, cut);
+        IRevenuePool(pool).reward(ring, cut, msg.sender);
 
         _takeTokenUseOffer(_tokenId, msg.sender);
     }
@@ -188,32 +189,6 @@ contract TokenUse is DSAuth, ITokenUse, SettingIds {
 
         emit OfferTaken(_tokenId, _from, tokenId2UseStatus[_tokenId].owner, now, uint256(tokenId2UseStatus[_tokenId].endTime));
 
-    }
-
-    //TODO: allow batch operation
-    function tokenFallback(address _from, uint256 _value, bytes /*_data*/) public {
-        address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
-        if(ring == msg.sender) {
-            uint256 tokenId;
-
-            assembly {
-                let ptr := mload(0x40)
-                calldatacopy(ptr, 0, calldatasize)
-                tokenId := mload(add(ptr, 132))
-            }
-
-            uint256 expense = uint256(tokenId2UseOffer[tokenId].price);
-            require(_value >= expense);
-
-            uint256 cut = expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
-
-            ERC20(ring).transfer(tokenId2UseOffer[tokenId].owner, expense.sub(cut));
-
-            ERC223(ring).transfer(
-                registry.addressOf(CONTRACT_REVENUE_POOL), cut, toBytes(_from));
-
-            _takeTokenUseOffer(tokenId, _from);
-        }
     }
 
     // start activity when token has no user at all
