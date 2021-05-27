@@ -37,6 +37,8 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
     // tokenId_inside => tokenId_outside
     mapping(uint256 => uint256) public mirrorId2OriginId;
 
+    mapping(uint256 => uint256) public mirrorId2OriginId1155;
+
     /*
      *  Event
      */
@@ -80,10 +82,11 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
         (uint256 apostleTokenId,) = IPetBase(petBase).pet2TiedStatus(_mirrorTokenId);
         require(apostleTokenId == 0, "Pet has been tied.");
-        uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
+        uint256 originTokenId = mirrorId2OriginId1155[_mirrorTokenId];
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         IBurnableERC20(objectOwnership).burn(msg.sender, _mirrorTokenId);
         IERC1155(nftContract).safeTransferFrom(address(this), msg.sender, originTokenId, 1, "");
+        delete mirrorId2OriginId1155[_mirrorTokenId];
         emit SwapOut(originTokenId, _mirrorTokenId, msg.sender);
     }
 
@@ -128,7 +131,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         for (uint256 i = 0; i < _value; i++) {
             uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenIdAndIncrease(_originTokenId);
             IMintableERC20(objectOwnership).mint(_from, mirrorTokenId);
-            mirrorId2OriginId[mirrorTokenId] = _originTokenId;
+            mirrorId2OriginId1155[mirrorTokenId] = _originTokenId;
             emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, _from);
             emit SwapIn(_originTokenId, mirrorTokenId, _from);
         }
