@@ -155,12 +155,17 @@ contract TokenUseV2 is DSAuth, ITokenUse, SettingIds {
         emit OfferCancelled(_tokenId);
     }
 
-    function takeTokenUseOffer(uint256 _tokenId) public {
+    function takeTokenUseOffer(uint256 _tokenId, uint256 _amountMax) public {
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
+        address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
+        require(_amountMax >= expense,
+            "your offer is lower than the current price, try again with a higher one.");
+        uint refund = _amountMax - expense;
+        if (refund > 0) {
+            ERC20(ring).transfer(msg.sender, refund);
+        }
 
         uint256 cut = expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
-
-        address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
 
         ERC20(ring).transferFrom(
             msg.sender, tokenId2UseOffer[_tokenId].owner, expense.sub(cut));
