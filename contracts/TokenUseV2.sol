@@ -154,12 +154,8 @@ contract TokenUseV2 is DSAuth, SettingIds {
         emit OfferCancelled(_tokenId);
     }
 
-    function _pay(address _seller, uint256 expense, uint256 _amountMax) internal {
+    function _pay(address _seller, uint256 expense) internal {
         address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
-        uint256 refoud = _amountMax - expense;
-        if (refoud > 0) {
-            ERC20(ring).transfer(msg.sender, refoud);
-        }
         uint256 cut = expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
         ERC20(ring).transferFrom(msg.sender, _seller, expense.sub(cut));
         address pool = registry.addressOf(CONTRACT_REVENUE_POOL);
@@ -170,7 +166,7 @@ contract TokenUseV2 is DSAuth, SettingIds {
     function takeTokenUseOffer(uint256 _tokenId, uint256 _amountMax) public {
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
         require(_amountMax >= expense, "offer too low");
-        _pay(tokenId2UseOffer[_tokenId].owner, expense, _amountMax);
+        _pay(tokenId2UseOffer[_tokenId].owner, expense);
         _takeTokenUseOffer(_tokenId, msg.sender);
     }
 
