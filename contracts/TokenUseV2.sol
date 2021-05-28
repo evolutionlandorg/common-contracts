@@ -166,7 +166,6 @@ contract TokenUseV2 is DSAuth, ITokenUse, SettingIds {
         address pool = registry.addressOf(CONTRACT_REVENUE_POOL);
         ERC20(ring).approve(pool, cut);
         IRevenuePool(pool).reward(ring, cut, msg.sender);
-
     }
 
     function takeTokenUseOffer(uint256 _tokenId, uint256 _amountMax) public {
