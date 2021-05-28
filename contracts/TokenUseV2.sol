@@ -3,7 +3,6 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
-import "./interfaces/ITokenUse.sol";
 import "./interfaces/IActivity.sol";
 import "./interfaces/ISettingsRegistry.sol";
 import "./interfaces/IInterstellarEncoder.sol";
@@ -12,7 +11,7 @@ import "./interfaces/IRevenuePool.sol";
 import "./SettingIds.sol";
 import "./DSAuth.sol";
 
-contract TokenUseV2 is DSAuth, ITokenUse, SettingIds {
+contract TokenUseV2 is DSAuth, SettingIds {
     using SafeMath for *;
 
     // claimedToken event
