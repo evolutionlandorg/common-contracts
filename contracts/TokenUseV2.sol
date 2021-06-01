@@ -1,7 +1,6 @@
 pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IActivity.sol";
 import "./interfaces/ISettingsRegistry.sol";
@@ -10,6 +9,7 @@ import "./interfaces/IActivityObject.sol";
 import "./interfaces/IRevenuePool.sol";
 import "./SettingIds.sol";
 import "./DSAuth.sol";
+import "./interfaces/IERC20.sol";
 
 contract TokenUseV2 is DSAuth, SettingIds {
     using SafeMath for *;
@@ -156,9 +156,9 @@ contract TokenUseV2 is DSAuth, SettingIds {
 
     function _pay(address ring, address _seller, uint256 expense) internal {
         uint256 cut = expense.mul(registry.uintOf(UINT_TOKEN_OFFER_CUT)).div(10000);
-        ERC20(ring).transfer(_seller, expense.sub(cut));
+        IERC20(ring).transfer(_seller, expense.sub(cut));
         address pool = registry.addressOf(CONTRACT_REVENUE_POOL);
-        ERC20(ring).approve(pool, cut);
+        IERC20(ring).approve(pool, cut);
         IRevenuePool(pool).reward(ring, cut, msg.sender);
     }
 
@@ -166,7 +166,7 @@ contract TokenUseV2 is DSAuth, SettingIds {
         uint256 expense = uint256(tokenId2UseOffer[_tokenId].price);
         require(_amountMax >= expense, "offer too low");
         address ring = registry.addressOf(CONTRACT_RING_ERC20_TOKEN);
-        ERC20(ring).transferFrom(msg.sender, address(this), expense);
+        IERC20(ring).transferFrom(msg.sender, address(this), expense);
         _pay(ring, tokenId2UseOffer[_tokenId].owner, expense);
         _takeTokenUseOffer(_tokenId, msg.sender);
     }
@@ -304,7 +304,7 @@ contract TokenUseV2 is DSAuth, SettingIds {
             owner.transfer(address(this).balance);
             return;
         }
-        ERC20 token = ERC20(_token);
+        IERC20 token = IERC20(_token);
         uint balance = token.balanceOf(address(this));
         token.transfer(owner, balance);
 
