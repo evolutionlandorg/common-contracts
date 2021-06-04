@@ -311,9 +311,4 @@ contract TokenUseV2 is DSAuth, SettingIds {
         emit ClaimedTokens(_token, owner, balance);
     }
 
-    function toBytes(address x) public pure returns (bytes b) {
-        b = new bytes(32);
-        assembly { mstore(add(b, 32), x) }
-    }
-
 }
