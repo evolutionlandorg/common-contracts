@@ -51,7 +51,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         originNFT2Adaptor[_originNftAddress] = _erc721Adaptor;
     }
 
-    function swapOut(uint256 _mirrorTokenId) public  {
+    function swapOut721(uint256 _mirrorTokenId) public  {
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
         address nftContract = interstellarEncoder.getOriginAddress(_mirrorTokenId);
         require(nftContract != address(0), "No such NFT contract");
@@ -123,7 +123,9 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
     }
 
     // V2 add - Support PolkaPet
-    function _bridgeIn1155(address _originNftAddress, uint256 _originTokenId, address _from, uint256 _value) private {
+    function swapIn1155(address _originNftAddress, uint256 _originTokenId, uint256 _value) public whenNotPaused() {
+        address _from = msg.sender;
+        IERC1155(_originNftAddress).safeTransferFrom(_from, address(this), _originTokenId, _value, "");
         address adaptor = originNFT2Adaptor[_originNftAddress];
         require(adaptor != address(0), "Not registered!");
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
@@ -136,7 +138,9 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         }
     }
 
-    function _bridgeIn721(address _originNftAddress, uint256 _originTokenId, address _owner) private {
+    function swapIn721(address _originNftAddress, uint256 _originTokenId) public whenNotPaused() {
+        address _owner = msg.sender;
+        ERC721(_originNftAddress).transferFrom(_owner, address(this), _originTokenId);
         address adaptor = originNFT2Adaptor[_originNftAddress];
         require(adaptor != address(0), "Not registered!");
         uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
@@ -153,48 +157,39 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
 
     function onERC721Received(
       address /*_operator*/,
-      address _from,
-      uint256 _tokenId,
+      address /*_from*/,
+      uint256 /*_tokenId*/,
       bytes /*_data*/
     )
-      whenNotPaused()
-      public 
+      external 
       returns(bytes4) 
     {
-        _bridgeIn721(msg.sender, _tokenId, _from);
         return ERC721_RECEIVED;
     }
 
     function onERC1155Received(
-        address /*operator*/,
-        address from,
-        uint256 id,
-        uint256 value,
-        bytes /*data*/
+      address /*operator*/,
+      address /*from*/,
+      uint256 /*id*/,
+      uint256 /*value*/,
+      bytes /*data*/
     )
-        whenNotPaused()
-        external
-        returns(bytes4)
+      external
+      returns(bytes4)
     {
-        _bridgeIn1155(msg.sender, id, from, value);
         return ERC1155_RECEIVED_VALUE; 
     }
 
     function onERC1155BatchReceived(
-        address /*operator*/,
-        address from,
-        uint256[] ids,
-        uint256[] values,
-        bytes /*data*/
+      address /*operator*/,
+      address /*from*/,
+      uint256[] /*ids*/,
+      uint256[] /*values*/,
+      bytes /*data*/
     )
-        whenNotPaused()
-        external
-        returns(bytes4)
+      external
+      returns(bytes4)
     {
-        require(ids.length == values.length, "INVALID_ARRAYS_LENGTH");
-        for (uint256 i = 0; i < ids.length; i++) {
-            _bridgeIn1155(msg.sender, ids[i], from, values[i]);
-        }
         return ERC1155_BATCH_RECEIVED_VALUE;	
     }
 }
