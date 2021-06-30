@@ -161,7 +161,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
       uint256 /*_tokenId*/,
       bytes /*_data*/
     )
-      external 
+      public 
       returns(bytes4) 
     {
         return ERC721_RECEIVED;
