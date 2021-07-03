@@ -65,6 +65,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         ERC721(objectOwnership).transferFrom(msg.sender, address(this), _mirrorTokenId);
+        ERC721(nftContract).approve(address(this), originTokenId);
         ERC721(nftContract).transferFrom(address(this), msg.sender, originTokenId);
         emit SwapOut(nftContract, originTokenId, _mirrorTokenId, msg.sender);
     }
