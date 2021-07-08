@@ -37,8 +37,9 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
         producerId = _producerId;
         convertType = 128;  // f(x) = x，fullfill with zero at left side.
 
-		allowList[2] = true;
-		allowList[11] = true;
+        allowList[2] = true;   // Darwinia
+        allowList[11] = true;  // EVO
+        allowList[20] = true;  // Crab
     }
 
 	function setTokenIDAuth(uint256 _tokenId, bool _status) public auth {

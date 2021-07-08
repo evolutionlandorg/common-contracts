@@ -64,9 +64,13 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         require(apostleTokenId == 0, "Pet has been tied.");
         uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        ERC721(objectOwnership).transferFrom(msg.sender, address(this), _mirrorTokenId);
-        ERC721(nftContract).approve(address(this), originTokenId);
-        ERC721(nftContract).transferFrom(address(this), msg.sender, originTokenId);
+        address owner = ERC721(objectOwnership).ownerOf(_mirrorTokenId);
+        if (owner != address(this)) {
+            ERC721(nftContract).approve(address(this), originTokenId);
+            ERC721(nftContract).transferFrom(address(this), msg.sender, originTokenId);
+        }
+        IBurnableERC20(objectOwnership).burn(owner, _mirrorTokenId);
+        delete mirrorId2OriginId[_mirrorTokenId];
         emit SwapOut(nftContract, originTokenId, _mirrorTokenId, msg.sender);
     }
 
@@ -146,12 +150,10 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         require(adaptor != address(0), "Not registered!");
         uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        if (!isBridged(mirrorTokenId)) {
-            IMintableERC20(objectOwnership).mint(address(this), mirrorTokenId);
-            INFTAdaptor(adaptor).cacheMirrorTokenId(_originTokenId, mirrorTokenId);
-            mirrorId2OriginId[mirrorTokenId] = _originTokenId;
-            // emit BridgeIn(_originTokenId, mirrorTokenId, _originNftAddress, adaptor, _owner);
-        }
+        require(!isBridged(mirrorTokenId), "Already swap in");
+        IMintableERC20(objectOwnership).mint(address(this), mirrorTokenId);
+        INFTAdaptor(adaptor).cacheMirrorTokenId(_originTokenId, mirrorTokenId);
+        mirrorId2OriginId[mirrorTokenId] = _originTokenId;
         ERC721(objectOwnership).transferFrom(address(this), _owner, mirrorTokenId);
         emit SwapIn(_originNftAddress, _originTokenId, mirrorTokenId, _owner);
     }
