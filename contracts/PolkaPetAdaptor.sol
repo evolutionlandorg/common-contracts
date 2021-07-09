@@ -13,7 +13,6 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
     /*
      *  Storage
     */
-    bool private singletonLock = false;
 
     uint16 public producerId;
 
@@ -47,8 +46,8 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
     function toMirrorTokenIdAndIncrease(uint256 _originTokenId) public auth returns (uint256) {
 		require(allowList[_originTokenId], "POLKPET: PERMISSION");
         lastObjectId += 1;
+		require(lastObjectId < uint128(-1), "POLKPET: OBJECTID_OVERFLOW");
         uint128 mirrorObjectId = uint128(lastObjectId & 0xffffffffffffffffffffffffffffffff);
-		require(lastObjectId <= uint128(-1), "POLKPET: OBJECTID_OVERFLOW");
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
         address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
