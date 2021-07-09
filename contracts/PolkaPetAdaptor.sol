@@ -3,10 +3,7 @@ pragma solidity ^0.4.24;
 import "./SettingIds.sol";
 import "./PausableDSAuth.sol";
 import "./interfaces/ISettingsRegistry.sol";
-import "./interfaces/INFTAdaptor.sol";
-// import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "./interfaces/IInterstellarEncoderV3.sol";
-import "./interfaces/IERC1155.sol";
 
 
 contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
@@ -24,14 +21,14 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
 
     ISettingsRegistry public registry;
 
-    IERC1155 public originNft;
+    address public originNft;
 
 	uint128 public lastObjectId;
 
 	// tokenID => bool allowList
     mapping (uint256 => bool) public allowList;
 
-    constructor(ISettingsRegistry _registry, IERC1155 _originNft, uint16 _producerId) public {
+    constructor(ISettingsRegistry _registry, address _originNft, uint16 _producerId) public {
         registry = _registry;
         originNft = _originNft;
         producerId = _producerId;
@@ -47,7 +44,7 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
 		emit SetTokenIDAuth(_tokenId, _status);	
 	}
 
-    function toMirrorTokenIdAndIncrease(uint256 _originTokenId) public returns (uint256) {
+    function toMirrorTokenIdAndIncrease(uint256 _originTokenId) public auth returns (uint256) {
 		require(allowList[_originTokenId], "POLKPET: PERMISSION");
         lastObjectId += 1;
         uint128 mirrorObjectId = uint128(lastObjectId & 0xffffffffffffffffffffffffffffffff);
@@ -56,36 +53,9 @@ contract PolkaPetAdaptor is PausableDSAuth, SettingIds {
         address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
         IInterstellarEncoderV3 interstellarEncoder = IInterstellarEncoderV3(registry.addressOf(SettingIds.CONTRACT_INTERSTELLAR_ENCODER));
         uint256 mirrorTokenId = interstellarEncoder.encodeTokenIdForOuterObjectContract(
-            petBase, objectOwnership, address(originNft), mirrorObjectId, producerId, convertType);
+            petBase, objectOwnership, originNft, mirrorObjectId, producerId, convertType);
 
         return mirrorTokenId;
     }
 
-    function ownerInOrigin(uint256 /*_originTokenId*/) public pure returns (address) {
-		revert("NOT_SUPPORT");
-    }
-
-    // if the convertion is not calculatable, and need to use cache mapping in Bridge.
-    // then ..
-    function toOriginTokenId(uint256 /*_mirrorTokenId*/) public pure returns (uint256) {
-		revert("NOT_SUPPORT");
-    }
-
-    function approveToBridge(address _bridge) public onlyOwner {
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        IERC1155(objectOwnership).setApprovalForAll(_bridge, true);
-    }
-
-    function cancelApprove(address _bridge) public onlyOwner {
-        address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        IERC1155(objectOwnership).setApprovalForAll(_bridge, false);
-    }
-
-    function getObjectClass(uint256 /*_originTokenId*/) public pure returns (uint8) {
-		revert("NOT_SUPPORT");
-    }
-
-    function cacheMirrorTokenId(uint256 /*_originTokenId*/, uint256 /*_mirrorTokenId*/) public view auth {
-		revert("NOT_SUPPORT");
-    }
 }
