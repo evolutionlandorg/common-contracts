@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-contract ERC721AdaptorAuthority {
+contract PolkaPetAdaptorAuthority {
     mapping (address => bool) public whiteList;
 
     constructor(address[] _whitelists) public {
