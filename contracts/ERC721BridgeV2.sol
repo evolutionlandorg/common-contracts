@@ -7,10 +7,10 @@ import "./interfaces/IInterstellarEncoderV3.sol";
 import "./interfaces/IMintableERC20.sol";
 import "./interfaces/IBurnableERC20.sol";
 import "./interfaces/INFTAdaptor.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721Receiver.sol";
 import "./interfaces/IERC1155.sol";
 import "./interfaces/IERC1155Receiver.sol";
+import "./interfaces/IERC721.sol";
+import "./interfaces/IERC721Receiver.sol";
 import "./interfaces/IPetBase.sol";
 
 
@@ -19,7 +19,7 @@ import "./interfaces/IPetBase.sol";
  * originTokenId - token outside evolutionLand
  * mirrorTokenId - mirror token
  */
-contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155Receiver {
+contract ERC721BridgeV2 is SettingIds, PausableDSAuth, IERC721Receiver, IERC1155Receiver {
 
     /*
      *  Storage
@@ -64,10 +64,10 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         require(apostleTokenId == 0, "Pet has been tied.");
         uint256 originTokenId = mirrorId2OriginId[_mirrorTokenId];
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        address owner = ERC721(objectOwnership).ownerOf(_mirrorTokenId);
+        address owner = IERC721(objectOwnership).ownerOf(_mirrorTokenId);
         if (owner != address(this)) {
-            ERC721(nftContract).approve(address(this), originTokenId); // kitty must approve first 
-            ERC721(nftContract).transferFrom(address(this), msg.sender, originTokenId);
+            IERC721(nftContract).approve(address(this), originTokenId); // kitty must approve first 
+            IERC721(nftContract).transferFrom(address(this), msg.sender, originTokenId);
         }
         IBurnableERC20(objectOwnership).burn(owner, _mirrorTokenId);
         delete mirrorId2OriginId[_mirrorTokenId];
@@ -82,7 +82,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
         address adaptor = originNFT2Adaptor[nftContract];
         require(adaptor != address(0), "not registered!");
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        require(ERC721(objectOwnership).ownerOf(_mirrorTokenId) == msg.sender, "you have no right to swap it out!");
+        require(IERC721(objectOwnership).ownerOf(_mirrorTokenId) == msg.sender, "you have no right to swap it out!");
 
         address petBase = registry.addressOf(SettingIds.CONTRACT_PET_BASE);
         (uint256 apostleTokenId,) = IPetBase(petBase).pet2TiedStatus(_mirrorTokenId);
@@ -108,7 +108,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
     // return human owner of the token
     function ownerOfMirror(uint256 _mirrorTokenId) public view returns (address) {
         address objectOwnership = registry.addressOf(SettingIds.CONTRACT_OBJECT_OWNERSHIP);
-        address owner = ERC721(objectOwnership).ownerOf(_mirrorTokenId);
+        address owner = IERC721(objectOwnership).ownerOf(_mirrorTokenId);
         if(owner != address(this)) {
             return owner;
         } else {
@@ -145,7 +145,7 @@ contract ERC721BridgeV2 is SettingIds, PausableDSAuth, ERC721Receiver, IERC1155R
 
     function swapIn721(address _originNftAddress, uint256 _originTokenId) public whenNotPaused() {
         address _owner = msg.sender;
-        ERC721(_originNftAddress).transferFrom(_owner, address(this), _originTokenId);
+        IERC721(_originNftAddress).transferFrom(_owner, address(this), _originTokenId);
         address adaptor = originNFT2Adaptor[_originNftAddress];
         require(adaptor != address(0), "Not registered!");
         uint256 mirrorTokenId = INFTAdaptor(adaptor).toMirrorTokenId(_originTokenId);
