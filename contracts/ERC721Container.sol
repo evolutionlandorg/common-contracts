@@ -75,7 +75,7 @@ contract ERC721Container is Ownable, SettingIds {
 
     }
 
-    function transferToOtherContainer(uint256 _objectTokenId, uint256 _toContainer) public {
+    function transferToOtherContainer(uint256 /*_objectTokenId*/, uint256 /*_toContainer*/) public pure {
 
     }
 

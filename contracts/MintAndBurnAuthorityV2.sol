@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-contract MintAndBurnAuthority {
+contract MintAndBurnAuthorityV2 {
 
     mapping (address => bool) public allowList;
 
@@ -11,7 +11,7 @@ contract MintAndBurnAuthority {
     }
 
     function canCall(
-        address _src, address _dst, bytes4 _sig
+        address _src, address /*_dst*/, bytes4 _sig
     ) public view returns (bool) {
         return ( allowList[_src] && _sig == bytes4(keccak256("mint(address,uint256)")) ) ||
         ( allowList[_src] && _sig == bytes4(keccak256("burn(address,uint256)")) );

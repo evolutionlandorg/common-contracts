@@ -19,7 +19,7 @@ contract ProposalRegistry is IAuthority {
 
     uint public transactionCount;
 
-    function executeProposal(uint proposalId) public {
+    function executeProposal(uint proposalId) public view {
         // TODO
         proposals[proposalId].doSomething();
     }
